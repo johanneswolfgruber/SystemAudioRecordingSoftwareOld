@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <HostOutputPath>$(SolutionDir)\bin\$(Configuration)\</HostOutputPath>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>

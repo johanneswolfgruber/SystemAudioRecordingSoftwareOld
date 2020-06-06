@@ -1,0 +1,77 @@
+﻿<Window
+    x:Class="SystemAudioRecordingSoftware.UI.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:prism="http://prismlibrary.com/"
+    Title="{Binding Title}"
+    Width="800"
+    Height="400"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    Background="{DynamicResource MaterialDesignPaper}"
+    FontFamily="{materialDesign:MaterialDesignFont}"
+    TextElement.FontSize="14"
+    TextElement.FontWeight="Medium"
+    TextElement.Foreground="{DynamicResource MaterialDesignBody}">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Button
+            Grid.Row="0"
+            Grid.Column="0"
+            Margin="8"
+            VerticalAlignment="Center"
+            Command="{Binding SelectFolderCommand}"
+            Content="CHOOSE FOLDER" />
+        <Label
+            Grid.Row="0"
+            Grid.Column="1"
+            Grid.ColumnSpan="4"
+            Margin="8"
+            VerticalAlignment="Center"
+            Content="{Binding SelectedFolderPath}" />
+        <Button
+            Grid.Row="1"
+            Grid.Column="0"
+            Margin="8"
+            VerticalAlignment="Center"
+            Command="{Binding StartRecordingCommand}"
+            Content="RECORD" />
+        <Button
+            Grid.Row="1"
+            Grid.Column="1"
+            Margin="8"
+            VerticalAlignment="Center"
+            Command="{Binding StopRecordingCommand}"
+            Content="STOP" />
+        <TextBox
+            Grid.Row="1"
+            Grid.Column="2"
+            Width="150"
+            Margin="8"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Center"
+            materialDesign:HintAssist.Hint="FILENAME"
+            Style="{StaticResource MaterialDesignTextBox}"
+            Text="{Binding FileName}" />
+
+        <ContentPresenter
+            Grid.Row="2"
+            Grid.ColumnSpan="5"
+            Margin="8"
+            Content="{Binding Visualization}" />
+        <ContentControl prism:RegionManager.RegionName="ContentRegion" />
+    </Grid>
+</Window>
