@@ -2,6 +2,7 @@
 using NAudio.Wave;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,34 +10,34 @@ using SystemAudioRecordingSoftware.Core.File;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
 {
-    public sealed class Recorder
+    public sealed class RecorderService : IRecorderService
     {
         private WasapiLoopbackCapture _capture;
-        private IWaveInSampleProvider _sampleProvider;
+        private IFilePathProvider _filePathProvider;
+        private WaveInSampleProvider _sampleProvider;
         private WaveFileWriter? _writer;
 
-        public Recorder(IFilePathProvider filePathManager)
+        public RecorderService(IFilePathProvider filePathProvider)
         {
-            FilePathManager = filePathManager;
+            _filePathProvider = filePathProvider;
 
             _capture = new WasapiLoopbackCapture();
-            _sampleProvider = new SampleProvider(_capture);
+            _sampleProvider = new WaveInSampleProvider(_capture.WaveFormat);
         }
+
+        public event EventHandler? CaptureStateChanged;
+
+        public event EventHandler<StoppedEventArgs>? RecordingStopped;
 
         public event EventHandler<MinMaxValuesEventArgs>? SampleAvailable;
 
-        public IFilePathProvider FilePathManager { get; }
+        public bool IsRecording => _capture.CaptureState != NAudio.CoreAudioApi.CaptureState.Stopped;
 
-        public async Task StartRecording()
+        public void StartRecording()
         {
             InitializeRecordingEngine();
-
             _capture.StartRecording();
-
-            while (_capture.CaptureState != NAudio.CoreAudioApi.CaptureState.Stopped)
-            {
-                await Task.Delay(500);
-            }
+            CaptureStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void StopRecording()
@@ -47,8 +48,8 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private void InitializeRecordingEngine()
         {
             _capture = new WasapiLoopbackCapture();
-            _sampleProvider = new SampleProvider(_capture);
-            _writer = new WaveFileWriter(FilePathManager.CurrentRecordingFile, _capture.WaveFormat);
+            _sampleProvider = new WaveInSampleProvider(_capture.WaveFormat);
+            _writer = new WaveFileWriter(_filePathProvider.CurrentRecordingFile, _capture.WaveFormat);
 
             _capture.DataAvailable += OnDataAvailable;
             _capture.RecordingStopped += OnRecordingStopped;
@@ -76,6 +77,9 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             _writer.Dispose();
             _writer = null;
             _capture.Dispose();
+
+            CaptureStateChanged?.Invoke(this, EventArgs.Empty);
+            RecordingStopped?.Invoke(this, args);
         }
 
         private void OnSampleAvailable(object? sender, MinMaxValuesEventArgs args)

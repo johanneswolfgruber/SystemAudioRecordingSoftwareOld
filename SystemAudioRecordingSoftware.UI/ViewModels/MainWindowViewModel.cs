@@ -2,7 +2,9 @@
 
 using Prism.Commands;
 using Prism.Mvvm;
+using PropertyChanged;
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,57 +16,72 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
 {
     public class MainWindowViewModel : BindableBase
     {
-        private readonly Recorder _recorder;
+        private readonly IAudioEngineService _engineService;
         private readonly PolygonWaveFormViewModel _visualization = new PolygonWaveFormViewModel();
 
-        public MainWindowViewModel(Recorder recorder)
+        public MainWindowViewModel(IAudioEngineService engineService)
         {
-            _recorder = recorder;
+            _engineService = engineService;
 
-            _recorder.SampleAvailable += (s, a) =>
-            {
-                _visualization.OnSampleAvailable(a.MinValue, a.MaxValue);
-            };
+            _engineService.SampleAvailable += OnSampleAvailable;
+            _engineService.CaptureStateChanged += OnCaptureStateChanged;
 
-            SelectFolderCommand = new DelegateCommand(OnOpenFile);
-            StartRecordingCommand = new DelegateCommand(async () => await OnStartRecording());
-            StopRecordingCommand = new DelegateCommand(OnStopRecording);
+            RecordCommand = new DelegateCommand(OnRecord);
+            PlayCommand = new DelegateCommand(OnPlay);
+            StopCommand = new DelegateCommand(OnStop);
+            SaveCommand = new DelegateCommand(OnSave);
         }
 
-        public string? FileName { get; set; }
-        public string? SelectedFolderPath { get; set; }
-        public ICommand SelectFolderCommand { get; set; }
-        public ICommand StartRecordingCommand { get; set; }
-        public ICommand StopRecordingCommand { get; set; }
+        public DelegateCommand PlayCommand { get; set; }
+
+        public DelegateCommand RecordCommand { get; set; }
+
+        public DelegateCommand SaveCommand { get; set; }
+
+        public DelegateCommand StopCommand { get; set; }
+
         public string Title { get; set; } = "System Audio Recording Software";
+
         public object Visualization => _visualization.Content;
 
-        private void OnOpenFile()
+        [SuppressPropertyChangedWarnings]
+        private void OnCaptureStateChanged(object? sender, EventArgs args)
         {
-            using var dialog = new FolderBrowserDialog();
-            DialogResult result = dialog.ShowDialog();
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "SystemAudioRecordingSoftware");
+            StopCommand.RaiseCanExecuteChanged();
+        }
+
+        private void OnPlay()
+        {
+            _engineService.Play();
+        }
+
+        private void OnRecord()
+        {
+            _engineService.Record();
+        }
+
+        private void OnSampleAvailable(object? sender, MinMaxValuesEventArgs args)
+        {
+            _visualization.OnSampleAvailable(args.MinValue, args.MaxValue);
+        }
+
+        private void OnSave()
+        {
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Wav file (*.wav)|*.wav"
+            };
+            var result = saveFileDialog.ShowDialog();
 
             if (result == DialogResult.OK)
             {
-                path = dialog.SelectedPath;
+                _engineService.Save(saveFileDialog.FileName);
             }
-
-            SelectedFolderPath = path;
-            _recorder.FilePathManager.SetRecordingFolder(path);
         }
 
-        private async Task OnStartRecording()
+        private void OnStop()
         {
-            var fileName = FileName ?? "recording";
-
-            _recorder.FilePathManager.SetRecordingFile(fileName);
-            await _recorder.StartRecording();
-        }
-
-        private void OnStopRecording()
-        {
-            _recorder.StopRecording();
+            _engineService.Stop();
         }
     }
 }

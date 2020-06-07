@@ -20,6 +20,11 @@ namespace SystemAudioRecordingSoftware.Core.File
         public string CurrentRecordingFile { get; private set; } = string.Empty;
         public string CurrentRecordingFolder { get; private set; } = string.Empty;
 
+        public void Save(string filePath)
+        {
+            System.IO.File.Copy(CurrentRecordingFile, filePath, true);
+        }
+
         public void SetRecordingFile(string fileName)
         {
             var name = Path.ChangeExtension(fileName, ".wav");

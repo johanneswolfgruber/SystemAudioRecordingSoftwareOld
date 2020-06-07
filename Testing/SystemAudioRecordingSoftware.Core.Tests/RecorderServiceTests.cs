@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SystemAudioRecordingSoftware.Core.Tests
 {
-    internal class RecorderTests
+    internal class RecorderServiceTests
     {
         [Test]
         public void Test1()

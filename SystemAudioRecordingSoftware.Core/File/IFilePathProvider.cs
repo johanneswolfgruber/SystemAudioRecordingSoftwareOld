@@ -8,6 +8,8 @@ namespace SystemAudioRecordingSoftware.Core.File
         string CurrentRecordingFile { get; }
         string CurrentRecordingFolder { get; }
 
+        public void Save(string filePath);
+
         public void SetRecordingFile(string fileName);
 
         public void SetRecordingFolder(string folderPath);

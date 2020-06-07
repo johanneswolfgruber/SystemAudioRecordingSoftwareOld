@@ -12,8 +12,10 @@ namespace SystemAudioRecordingSoftware.Core.Bootstrapping
     {
         public static void Execute(IContainerRegistry container)
         {
+            container.RegisterSingleton<IPlaybackService, PlaybackService>();
             container.RegisterSingleton<IFilePathProvider, FilePathProvider>();
-            container.RegisterSingleton<Recorder>();
+            container.RegisterSingleton<IRecorderService, RecorderService>();
+            container.RegisterSingleton<IAudioEngineService, AudioEngineService>();
         }
     }
 }
