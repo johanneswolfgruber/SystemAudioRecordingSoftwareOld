@@ -1,9 +1,6 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
 using NAudio.Wave;
-using System;
-using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
 {

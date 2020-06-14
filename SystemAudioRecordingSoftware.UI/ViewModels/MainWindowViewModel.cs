@@ -20,15 +20,17 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
         {
             _engineService = engineService ?? Locator.Current.GetService<IAudioEngineService>();
 
-            Observable
-                .FromEventPattern(_engineService, nameof(_engineService.CaptureStateChanged))
+            _engineService
+                .CaptureStateChanged
                 .Subscribe(_ => IsRecording = _engineService.IsRecording);
 
-            Observable
-                .FromEventPattern(_engineService, nameof(_engineService.PlaybackStateChanged))
+            _engineService
+                .PlaybackStateChanged
                 .Subscribe(_ => IsPlaying = _engineService.IsPlaying);
 
-            _engineService.SampleAvailable += OnSampleAvailable;
+            _engineService
+                .SampleAvailable
+                .Subscribe(x => OnSampleAvailable(x));
 
             var canStop = this.WhenAnyValue(
                 x => x.IsRecording, x => x.IsPlaying,
@@ -49,11 +51,6 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
         [Reactive] public string Title { get; set; } = "System Audio Recording Software";
         public object Visualization => _visualization.Content;
 
-        private void OnCaptureStateChanged(object? sender, EventArgs args)
-        {
-            IsRecording = _engineService.IsRecording;
-        }
-
         private void OnPlay()
         {
             _engineService.Play();
@@ -64,7 +61,7 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
             _engineService.Record();
         }
 
-        private void OnSampleAvailable(object? sender, MinMaxValuesEventArgs args)
+        private void OnSampleAvailable(MinMaxValuesEventArgs args)
         {
             _visualization.OnSampleAvailable(args.MinValue, args.MaxValue);
         }

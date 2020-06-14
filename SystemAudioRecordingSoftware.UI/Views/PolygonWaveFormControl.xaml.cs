@@ -1,16 +1,10 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 using MaterialDesignThemes.Wpf;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 namespace SystemAudioRecordingSoftware.UI.Views
@@ -29,8 +23,12 @@ namespace SystemAudioRecordingSoftware.UI.Views
 
         public PolygonWaveFormControl()
         {
-            SizeChanged += OnSizeChanged;
+            Observable
+                .FromEventPattern<SizeChangedEventArgs>(this, nameof(SizeChanged))
+                .Subscribe(x => OnSizeChanged(x.EventArgs));
+
             InitializeComponent();
+
             _waveForm.Stroke = Foreground;
             _waveForm.StrokeThickness = 1;
             var palette = new PaletteHelper().GetTheme();
@@ -99,7 +97,7 @@ namespace SystemAudioRecordingSoftware.UI.Views
             _renderPosition++;
         }
 
-        private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+        private void OnSizeChanged(SizeChangedEventArgs _)
         {
             _renderPosition = 0;
             ClearAllPoints();

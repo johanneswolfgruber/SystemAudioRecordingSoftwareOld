@@ -1,44 +1,56 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Splat;
 using System;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using SystemAudioRecordingSoftware.Core.File;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
 {
     public sealed class RecorderService : IRecorderService
     {
+        private readonly Subject<CaptureState> _captureStateChanged;
         private readonly IFilePathProvider _filePathProvider;
+        private readonly Subject<StoppedEventArgs> _recordingStopped;
+        private readonly Subject<MinMaxValuesEventArgs> _sampleAvailable;
         private WasapiLoopbackCapture _capture;
         private WaveInSampleProvider _sampleProvider;
         private WaveFileWriter? _writer;
+        private IDisposable? _dataAvailableDisposable;
+        private IDisposable? _recordingStoppedDisposable;
+        private IDisposable? _sampleAvailableDisposable;
 
         public RecorderService(IFilePathProvider? filePathProvider = null)
         {
             _filePathProvider = filePathProvider ?? Locator.Current.GetService<IFilePathProvider>();
 
+            _captureStateChanged = new Subject<CaptureState>();
+            _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
+            _recordingStopped = new Subject<StoppedEventArgs>();
+
             _capture = new WasapiLoopbackCapture();
             _sampleProvider = new WaveInSampleProvider(_capture.WaveFormat);
         }
 
-        public event EventHandler<CaptureStateChangedEventArgs>? CaptureStateChanged;
-
-        public event EventHandler<StoppedEventArgs>? RecordingStopped;
-
-        public event EventHandler<MinMaxValuesEventArgs>? SampleAvailable;
-
-        public bool IsRecording => _capture.CaptureState != NAudio.CoreAudioApi.CaptureState.Stopped;
+        public bool IsRecording => _capture.CaptureState != CaptureState.Stopped;
+        public IObservable<CaptureState> CaptureStateChanged => _captureStateChanged.AsObservable();
+        public IObservable<StoppedEventArgs> RecordingStopped => _recordingStopped.AsObservable();
+        public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
 
         public void StartRecording()
         {
             InitializeRecordingEngine();
             _capture.StartRecording();
-            CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
+            _captureStateChanged.OnNext(_capture.CaptureState);
         }
 
         public void StopRecording()
         {
             _capture.StopRecording();
+            _captureStateChanged.OnNext(_capture.CaptureState);
         }
 
         private void InitializeRecordingEngine()
@@ -47,12 +59,20 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             _sampleProvider = new WaveInSampleProvider(_capture.WaveFormat);
             _writer = new WaveFileWriter(_filePathProvider.CurrentRecordingFile, _capture.WaveFormat);
 
-            _capture.DataAvailable += OnDataAvailable;
-            _capture.RecordingStopped += OnRecordingStopped;
-            _sampleProvider.SampleAvailable += OnSampleAvailable;
+            _dataAvailableDisposable = Observable
+                .FromEventPattern<WaveInEventArgs>(_capture, nameof(_capture.DataAvailable))
+                .Subscribe(x => OnDataAvailable(x.EventArgs));
+
+            _recordingStoppedDisposable = Observable
+                .FromEventPattern<StoppedEventArgs>(_capture, nameof(_capture.RecordingStopped))
+                .Subscribe(x => OnRecordingStopped(x.EventArgs));
+
+            _sampleAvailableDisposable = _sampleProvider
+                .SampleAvailable
+                .Subscribe(x => _sampleAvailable.OnNext(new MinMaxValuesEventArgs(x.MinValue, x.MaxValue)));
         }
 
-        private void OnDataAvailable(object? sender, WaveInEventArgs args)
+        private void OnDataAvailable(WaveInEventArgs args)
         {
             if (_writer == null)
             {
@@ -63,7 +83,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             _sampleProvider.Add(args.Buffer, 0, args.BytesRecorded);
         }
 
-        private void OnRecordingStopped(object? sender, StoppedEventArgs args)
+        private void OnRecordingStopped(StoppedEventArgs args)
         {
             if (_writer == null)
             {
@@ -74,13 +94,12 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             _writer = null;
             _capture.Dispose();
 
-            CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
-            RecordingStopped?.Invoke(this, args);
-        }
+            _dataAvailableDisposable?.Dispose();
+            _recordingStoppedDisposable?.Dispose();
+            _sampleAvailableDisposable?.Dispose();
 
-        private void OnSampleAvailable(object? sender, MinMaxValuesEventArgs args)
-        {
-            SampleAvailable?.Invoke(this, new MinMaxValuesEventArgs(args.MinValue, args.MaxValue));
+            _captureStateChanged.OnNext(_capture.CaptureState);
+            _recordingStopped.OnNext(args);
         }
     }
 }

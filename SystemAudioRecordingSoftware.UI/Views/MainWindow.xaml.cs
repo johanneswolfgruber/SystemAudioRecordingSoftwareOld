@@ -1,11 +1,7 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 
 using ReactiveUI;
-using Splat;
 using System.Reactive.Disposables;
-using System.Windows;
-using System.Windows.Markup;
-using SystemAudioRecordingSoftware.Core.Audio;
 using SystemAudioRecordingSoftware.UI.ViewModels;
 
 namespace SystemAudioRecordingSoftware.UI.Views

@@ -1,7 +1,10 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Splat;
 using System;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using SystemAudioRecordingSoftware.Core.File;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
@@ -11,30 +14,36 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private readonly IFilePathProvider _filePathProvider;
         private readonly IPlaybackService _playbackService;
         private readonly IRecorderService _recorderService;
+        private readonly Subject<MinMaxValuesEventArgs> _sampleAvailable;
 
         public AudioEngineService(IFilePathProvider? filePathProvider = null,
-            IRecorderService? recorderService = null, IPlaybackService? playbackService = null)
+                                  IRecorderService? recorderService = null,
+                                  IPlaybackService? playbackService = null)
         {
             _filePathProvider = filePathProvider ?? Locator.Current.GetService<IFilePathProvider>();
             _recorderService = recorderService ?? Locator.Current.GetService<IRecorderService>();
             _playbackService = playbackService ?? Locator.Current.GetService<IPlaybackService>();
 
-            _recorderService.CaptureStateChanged += OnCaptureStateChanged;
-            _recorderService.SampleAvailable += OnSampleAvailable;
-            _recorderService.RecordingStopped += OnRecordingStopped;
-            _playbackService.SampleAvailable += OnSampleAvailable;
-            _playbackService.PlaybackStateChanged += OnPlaybackStateChanged;
+            _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
+
+            _recorderService
+                .SampleAvailable
+                .Subscribe(x => OnSampleAvailable(x.MinValue, x.MaxValue));
+
+            _recorderService
+                .RecordingStopped
+                .Subscribe(x => OnRecordingStopped());
+
+            _playbackService
+                .SampleAvailable
+                .Subscribe(x => OnSampleAvailable(x.MinValue, x.MaxValue));
         }
 
-        public event EventHandler<CaptureStateChangedEventArgs>? CaptureStateChanged;
-
-        public event EventHandler<PlaybackStateChangedEventArgs>? PlaybackStateChanged;
-
-        public event EventHandler<MinMaxValuesEventArgs>? SampleAvailable;
-
         public bool IsPlaying => _playbackService.IsPlaying;
-
         public bool IsRecording => _recorderService.IsRecording;
+        public IObservable<CaptureState> CaptureStateChanged => _recorderService.CaptureStateChanged;
+        public IObservable<PlaybackState> PlaybackStateChanged => _playbackService.PlaybackStateChanged;
+        public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
 
         public void Pause()
         {
@@ -68,24 +77,14 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             }
         }
 
-        private void OnCaptureStateChanged(object? sender, CaptureStateChangedEventArgs args)
-        {
-            CaptureStateChanged?.Invoke(this, args);
-        }
-
-        private void OnPlaybackStateChanged(object? sender, PlaybackStateChangedEventArgs args)
-        {
-            PlaybackStateChanged?.Invoke(this, args);
-        }
-
-        private void OnRecordingStopped(object? sender, StoppedEventArgs args)
+        private void OnRecordingStopped()
         {
             _playbackService.Initialize(_filePathProvider.CurrentRecordingFile);
         }
 
-        private void OnSampleAvailable(object? sender, MinMaxValuesEventArgs args)
+        private void OnSampleAvailable(float minValue, float maxValue)
         {
-            SampleAvailable?.Invoke(this, args);
+            _sampleAvailable.OnNext(new MinMaxValuesEventArgs(minValue, maxValue));
         }
     }
 }

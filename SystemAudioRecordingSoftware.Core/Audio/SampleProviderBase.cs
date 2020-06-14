@@ -1,27 +1,28 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
 using NAudio.Wave;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
 {
     internal class SampleProviderBase
     {
+        private readonly Subject<MinMaxValuesEventArgs> _sampleAvailable;
         private int _count;
         private float _maxValue;
         private float _minValue;
 
         public SampleProviderBase(WaveFormat waveFormat)
         {
+            _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
             WaveFormat = waveFormat;
             NotificationCount = WaveFormat.SampleRate / 100;
         }
 
-        public event EventHandler<MinMaxValuesEventArgs>? SampleAvailable;
-
         public int NotificationCount { get; set; }
-
+        public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
         public WaveFormat WaveFormat { get; }
 
         protected void Add(float[] buffer, int offset, int numSamples)
@@ -37,7 +38,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
 
                 if (_count >= NotificationCount && NotificationCount > 0)
                 {
-                    SampleAvailable?.Invoke(this, new MinMaxValuesEventArgs(_minValue, _maxValue));
+                    _sampleAvailable.OnNext(new MinMaxValuesEventArgs(_minValue, _maxValue));
                     Reset();
                 }
             }
