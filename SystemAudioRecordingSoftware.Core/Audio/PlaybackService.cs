@@ -1,9 +1,7 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 using NAudio.Wave;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
 {
@@ -11,6 +9,8 @@ namespace SystemAudioRecordingSoftware.Core.Audio
     {
         private WaveStream? _fileStream;
         private IWavePlayer? _playbackDevice;
+
+        public event EventHandler<PlaybackStateChangedEventArgs>? PlaybackStateChanged;
 
         public event EventHandler<MinMaxValuesEventArgs>? SampleAvailable;
 
@@ -63,6 +63,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private void CreateDevice()
         {
             _playbackDevice = new WaveOut { DesiredLatency = 200 };
+            _playbackDevice.PlaybackStopped += OnPlaybackStopped;
         }
 
         private void EnsureDeviceCreated()
@@ -70,6 +71,14 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             if (_playbackDevice == null)
             {
                 CreateDevice();
+            }
+        }
+
+        private void OnPlaybackStopped(object? sender, StoppedEventArgs e)
+        {
+            if (_playbackDevice != null)
+            {
+                PlaybackStateChanged?.Invoke(this, new PlaybackStateChangedEventArgs(_playbackDevice.PlaybackState));
             }
         }
 

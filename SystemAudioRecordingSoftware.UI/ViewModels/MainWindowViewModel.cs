@@ -1,53 +1,57 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 
-using Prism.Commands;
-using Prism.Mvvm;
-using PropertyChanged;
+using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
+using Splat;
 using System;
-using System.ComponentModel;
-using System.IO;
-using System.Threading.Tasks;
-using System.Windows;
+using System.Reactive;
+using System.Reactive.Linq;
 using System.Windows.Forms;
-using System.Windows.Input;
 using SystemAudioRecordingSoftware.Core.Audio;
 
 namespace SystemAudioRecordingSoftware.UI.ViewModels
 {
-    public class MainWindowViewModel : BindableBase
+    public class MainWindowViewModel : ReactiveObject
     {
         private readonly IAudioEngineService _engineService;
         private readonly PolygonWaveFormViewModel _visualization = new PolygonWaveFormViewModel();
 
-        public MainWindowViewModel(IAudioEngineService engineService)
+        public MainWindowViewModel(IAudioEngineService? engineService = null)
         {
-            _engineService = engineService;
+            _engineService = engineService ?? Locator.Current.GetService<IAudioEngineService>();
+
+            Observable
+                .FromEventPattern(_engineService, nameof(_engineService.CaptureStateChanged))
+                .Subscribe(_ => IsRecording = _engineService.IsRecording);
+
+            Observable
+                .FromEventPattern(_engineService, nameof(_engineService.PlaybackStateChanged))
+                .Subscribe(_ => IsPlaying = _engineService.IsPlaying);
 
             _engineService.SampleAvailable += OnSampleAvailable;
-            _engineService.CaptureStateChanged += OnCaptureStateChanged;
 
-            RecordCommand = new DelegateCommand(OnRecord);
-            PlayCommand = new DelegateCommand(OnPlay);
-            StopCommand = new DelegateCommand(OnStop);
-            SaveCommand = new DelegateCommand(OnSave);
+            var canStop = this.WhenAnyValue(
+                x => x.IsRecording, x => x.IsPlaying,
+                (r, p) => r || p);
+
+            RecordCommand = ReactiveCommand.Create(OnRecord);
+            PlayCommand = ReactiveCommand.Create(OnPlay);
+            StopCommand = ReactiveCommand.Create(OnStop, canStop);
+            SaveCommand = ReactiveCommand.Create(OnSave);
         }
 
-        public DelegateCommand PlayCommand { get; set; }
-
-        public DelegateCommand RecordCommand { get; set; }
-
-        public DelegateCommand SaveCommand { get; set; }
-
-        public DelegateCommand StopCommand { get; set; }
-
-        public string Title { get; set; } = "System Audio Recording Software";
-
+        [Reactive] public bool IsPlaying { get; set; }
+        [Reactive] public bool IsRecording { get; set; }
+        public ReactiveCommand<Unit, Unit> PlayCommand { get; }
+        public ReactiveCommand<Unit, Unit> RecordCommand { get; }
+        public ReactiveCommand<Unit, Unit> SaveCommand { get; }
+        public ReactiveCommand<Unit, Unit> StopCommand { get; }
+        [Reactive] public string Title { get; set; } = "System Audio Recording Software";
         public object Visualization => _visualization.Content;
 
-        [SuppressPropertyChangedWarnings]
         private void OnCaptureStateChanged(object? sender, EventArgs args)
         {
-            StopCommand.RaiseCanExecuteChanged();
+            IsRecording = _engineService.IsRecording;
         }
 
         private void OnPlay()

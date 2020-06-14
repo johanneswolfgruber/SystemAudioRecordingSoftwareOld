@@ -1,7 +1,9 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+using System;
+
 namespace SystemAudioRecordingSoftware.Core.Audio
 {
-    public class MinMaxValuesEventArgs
+    public class MinMaxValuesEventArgs : EventArgs
     {
         public MinMaxValuesEventArgs(float minValue, float maxValue)
         {

@@ -1,31 +1,27 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 using NAudio.Wave;
+using Splat;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using SystemAudioRecordingSoftware.Core.File;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
 {
     public sealed class RecorderService : IRecorderService
     {
+        private readonly IFilePathProvider _filePathProvider;
         private WasapiLoopbackCapture _capture;
-        private IFilePathProvider _filePathProvider;
         private WaveInSampleProvider _sampleProvider;
         private WaveFileWriter? _writer;
 
-        public RecorderService(IFilePathProvider filePathProvider)
+        public RecorderService(IFilePathProvider? filePathProvider = null)
         {
-            _filePathProvider = filePathProvider;
+            _filePathProvider = filePathProvider ?? Locator.Current.GetService<IFilePathProvider>();
 
             _capture = new WasapiLoopbackCapture();
             _sampleProvider = new WaveInSampleProvider(_capture.WaveFormat);
         }
 
-        public event EventHandler? CaptureStateChanged;
+        public event EventHandler<CaptureStateChangedEventArgs>? CaptureStateChanged;
 
         public event EventHandler<StoppedEventArgs>? RecordingStopped;
 
@@ -37,7 +33,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         {
             InitializeRecordingEngine();
             _capture.StartRecording();
-            CaptureStateChanged?.Invoke(this, EventArgs.Empty);
+            CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
         }
 
         public void StopRecording()
@@ -78,7 +74,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             _writer = null;
             _capture.Dispose();
 
-            CaptureStateChanged?.Invoke(this, EventArgs.Empty);
+            CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
             RecordingStopped?.Invoke(this, args);
         }
 

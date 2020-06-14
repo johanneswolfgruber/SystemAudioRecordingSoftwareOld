@@ -1,24 +1,23 @@
 ﻿// (c) Johannes Wolfgruber, 2020
-using Prism.Ioc;
+
+using ReactiveUI;
+using Splat;
+using System.Reflection;
 using System.Windows;
 using SystemAudioRecordingSoftware.Core.Bootstrapping;
-using SystemAudioRecordingSoftware.UI.Views;
 
 namespace SystemAudioRecordingSoftware.UI
 {
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App
+    public partial class App : Application
     {
-        protected override Window CreateShell()
+        public App()
         {
-            return Container.Resolve<MainWindow>();
-        }
+            CoreInitialization.Execute();
 
-        protected override void RegisterTypes(IContainerRegistry containerRegistry)
-        {
-            CoreInitialization.Execute(containerRegistry);
+            Locator.CurrentMutable.RegisterViewsForViewModels(Assembly.GetCallingAssembly());
         }
     }
 }

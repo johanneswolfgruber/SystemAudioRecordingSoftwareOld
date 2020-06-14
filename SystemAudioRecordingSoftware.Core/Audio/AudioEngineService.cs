@@ -1,8 +1,7 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 using NAudio.Wave;
+using Splat;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using SystemAudioRecordingSoftware.Core.File;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
@@ -13,19 +12,23 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private readonly IPlaybackService _playbackService;
         private readonly IRecorderService _recorderService;
 
-        public AudioEngineService(IFilePathProvider filePathProvider, IRecorderService recorderService, IPlaybackService playbackService)
+        public AudioEngineService(IFilePathProvider? filePathProvider = null,
+            IRecorderService? recorderService = null, IPlaybackService? playbackService = null)
         {
-            _filePathProvider = filePathProvider;
-            _recorderService = recorderService;
-            _playbackService = playbackService;
+            _filePathProvider = filePathProvider ?? Locator.Current.GetService<IFilePathProvider>();
+            _recorderService = recorderService ?? Locator.Current.GetService<IRecorderService>();
+            _playbackService = playbackService ?? Locator.Current.GetService<IPlaybackService>();
 
             _recorderService.CaptureStateChanged += OnCaptureStateChanged;
             _recorderService.SampleAvailable += OnSampleAvailable;
             _recorderService.RecordingStopped += OnRecordingStopped;
             _playbackService.SampleAvailable += OnSampleAvailable;
+            _playbackService.PlaybackStateChanged += OnPlaybackStateChanged;
         }
 
-        public event EventHandler? CaptureStateChanged;
+        public event EventHandler<CaptureStateChangedEventArgs>? CaptureStateChanged;
+
+        public event EventHandler<PlaybackStateChangedEventArgs>? PlaybackStateChanged;
 
         public event EventHandler<MinMaxValuesEventArgs>? SampleAvailable;
 
@@ -65,12 +68,17 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             }
         }
 
-        private void OnCaptureStateChanged(object? sender, EventArgs args)
+        private void OnCaptureStateChanged(object? sender, CaptureStateChangedEventArgs args)
         {
             CaptureStateChanged?.Invoke(this, args);
         }
 
-        private void OnRecordingStopped(object? sender, StoppedEventArgs e)
+        private void OnPlaybackStateChanged(object? sender, PlaybackStateChangedEventArgs args)
+        {
+            PlaybackStateChanged?.Invoke(this, args);
+        }
+
+        private void OnRecordingStopped(object? sender, StoppedEventArgs args)
         {
             _playbackService.Initialize(_filePathProvider.CurrentRecordingFile);
         }

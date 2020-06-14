@@ -9,6 +9,14 @@
 
   <ItemGroup>
     <PackageReference Include="NAudio" Version="1.10.0" />
-    <PackageReference Include="Prism.Core" Version="7.2.0.1422" />
+    <PackageReference Include="NLog" Version="4.7.2" />
+    <PackageReference Include="ReactiveUI" Version="11.4.17" />
+    <PackageReference Include="Splat.NLog" Version="9.4.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="NLog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
