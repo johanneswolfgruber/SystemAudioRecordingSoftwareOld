@@ -29,23 +29,18 @@ namespace SystemAudioRecordingSoftware.UI.Views
                     .DisposeWith(disposableRegistration);
 
                 this.BindCommand(ViewModel,
-                    viewModel => viewModel.PlayCommand,
-                    view => view.PlayButton)
-                    .DisposeWith(disposableRegistration);
-
-                this.BindCommand(ViewModel,
                     viewModel => viewModel.StopCommand,
                     view => view.StopButton)
-                    .DisposeWith(disposableRegistration);
-
-                this.BindCommand(ViewModel,
-                    viewModel => viewModel.SaveCommand,
-                    view => view.SaveButton)
                     .DisposeWith(disposableRegistration);
 
                 this.OneWayBind(ViewModel,
                     viewModel => viewModel.Visualization,
                     view => view.VisualizationContent.Content)
+                    .DisposeWith(disposableRegistration);
+
+                this.OneWayBind(ViewModel,
+                    viewModel => viewModel.Recordings,
+                    view => view.RecordingsList.ItemsSource)
                     .DisposeWith(disposableRegistration);
             });
         }

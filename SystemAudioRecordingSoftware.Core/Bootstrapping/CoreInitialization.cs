@@ -2,7 +2,7 @@
 
 using Splat;
 using Splat.NLog;
-using SystemAudioRecordingSoftware.Core.Audio;
+using SystemAudioRecordingSoftware.Core.AudioEngine;
 using SystemAudioRecordingSoftware.Core.File;
 
 namespace SystemAudioRecordingSoftware.Core.Bootstrapping

@@ -2,8 +2,11 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
+using System.Collections.Generic;
+using SystemAudioRecordingSoftware.Core.Audio;
+using SystemAudioRecordingSoftware.Core.Model;
 
-namespace SystemAudioRecordingSoftware.Core.Audio
+namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
     public interface IRecorderService
     {
@@ -15,5 +18,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         void StartRecording();
 
         void StopRecording();
+
+        IReadOnlyList<Recording> GetAllRecordings();
     }
 }

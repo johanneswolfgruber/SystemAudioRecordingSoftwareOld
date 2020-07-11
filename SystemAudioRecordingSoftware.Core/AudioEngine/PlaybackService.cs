@@ -4,8 +4,9 @@ using System;
 using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using SystemAudioRecordingSoftware.Core.Audio;
 
-namespace SystemAudioRecordingSoftware.Core.Audio
+namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
     public class PlaybackService : IPlaybackService
     {
@@ -53,6 +54,11 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             if (_fileStream != null &&
                 _playbackDevice.PlaybackState != PlaybackState.Playing)
             {
+                if (_fileStream.Position == _fileStream.Length)
+                {
+                    _fileStream.Position = 0;
+                }
+
                 _playbackDevice.Play();
                 _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
             }

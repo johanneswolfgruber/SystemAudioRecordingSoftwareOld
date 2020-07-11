@@ -1,5 +1,4 @@
 ﻿// (c) Johannes Wolfgruber, 2020
-using System.IO;
 
 namespace SystemAudioRecordingSoftware.Core.File
 {
@@ -8,10 +7,12 @@ namespace SystemAudioRecordingSoftware.Core.File
         string CurrentRecordingFile { get; }
         string CurrentRecordingFolder { get; }
 
-        public void Save(string filePath);
+        void Save(string filePath);
 
-        public void SetRecordingFile(string fileName);
+        void SetRecordingFile(string fileName);
 
-        public void SetRecordingFolder(string folderPath);
+        void SetRecordingFolder(string folderPath);
+
+        void CreateUniqueFilePath();
     }
 }

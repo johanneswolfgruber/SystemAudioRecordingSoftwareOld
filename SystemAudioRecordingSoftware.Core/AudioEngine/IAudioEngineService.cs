@@ -2,8 +2,11 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
+using System.Collections.Generic;
+using SystemAudioRecordingSoftware.Core.Audio;
+using SystemAudioRecordingSoftware.Core.Model;
 
-namespace SystemAudioRecordingSoftware.Core.Audio
+namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
     public interface IAudioEngineService
     {
@@ -12,6 +15,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         IObservable<CaptureState> CaptureStateChanged { get; }
         IObservable<PlaybackState> PlaybackStateChanged { get; }
         IObservable<MinMaxValuesEventArgs> SampleAvailable { get; }
+        IObservable<IReadOnlyList<Recording>> RecordingsChanged { get; }
 
         void Pause();
 

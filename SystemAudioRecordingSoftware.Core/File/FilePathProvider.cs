@@ -1,8 +1,6 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace SystemAudioRecordingSoftware.Core.File
 {
@@ -36,6 +34,12 @@ namespace SystemAudioRecordingSoftware.Core.File
             CurrentRecordingFolder = folderPath;
             CurrentRecordingFile = Path.Combine(CurrentRecordingFolder, Path.GetFileName(CurrentRecordingFile));
             Directory.CreateDirectory(CurrentRecordingFolder);
+        }
+
+        public void CreateUniqueFilePath()
+        {
+            var guid = Guid.NewGuid();
+            SetRecordingFile(guid.ToString());
         }
     }
 }

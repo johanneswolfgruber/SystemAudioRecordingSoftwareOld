@@ -4,10 +4,12 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
 using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Windows.Forms;
 using SystemAudioRecordingSoftware.Core.Audio;
+using SystemAudioRecordingSoftware.Core.AudioEngine;
 
 namespace SystemAudioRecordingSoftware.UI.ViewModels
 {
@@ -25,36 +27,28 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
                 .Subscribe(_ => IsRecording = _engineService.IsRecording);
 
             _engineService
-                .PlaybackStateChanged
-                .Subscribe(_ => IsPlaying = _engineService.IsPlaying);
-
-            _engineService
                 .SampleAvailable
                 .Subscribe(x => OnSampleAvailable(x));
 
+            _engineService
+                .RecordingsChanged
+                .Subscribe(x => Recordings =
+                    new ObservableCollection<RecordingViewModel>(x.Select(r => new RecordingViewModel(r))));
+
             var canStop = this.WhenAnyValue(
-                x => x.IsRecording, x => x.IsPlaying,
-                (r, p) => r || p);
+                x => x.IsRecording);
 
             RecordCommand = ReactiveCommand.Create(OnRecord);
-            PlayCommand = ReactiveCommand.Create(OnPlay);
             StopCommand = ReactiveCommand.Create(OnStop, canStop);
-            SaveCommand = ReactiveCommand.Create(OnSave);
+            Recordings = new ObservableCollection<RecordingViewModel>();
         }
 
-        [Reactive] public bool IsPlaying { get; set; }
         [Reactive] public bool IsRecording { get; set; }
-        public ReactiveCommand<Unit, Unit> PlayCommand { get; }
         public ReactiveCommand<Unit, Unit> RecordCommand { get; }
-        public ReactiveCommand<Unit, Unit> SaveCommand { get; }
         public ReactiveCommand<Unit, Unit> StopCommand { get; }
         [Reactive] public string Title { get; set; } = "System Audio Recording Software";
+        [Reactive] public ObservableCollection<RecordingViewModel> Recordings { get; set; }
         public object Visualization => _visualization.Content;
-
-        private void OnPlay()
-        {
-            _engineService.Play();
-        }
 
         private void OnRecord()
         {
@@ -64,20 +58,6 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
         private void OnSampleAvailable(MinMaxValuesEventArgs args)
         {
             _visualization.OnSampleAvailable(args.MinValue, args.MaxValue);
-        }
-
-        private void OnSave()
-        {
-            var saveFileDialog = new SaveFileDialog
-            {
-                Filter = "Wav file (*.wav)|*.wav"
-            };
-            var result = saveFileDialog.ShowDialog();
-
-            if (result == DialogResult.OK)
-            {
-                _engineService.Save(saveFileDialog.FileName);
-            }
         }
 
         private void OnStop()

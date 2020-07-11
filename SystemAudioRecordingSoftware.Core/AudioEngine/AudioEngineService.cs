@@ -3,11 +3,14 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Splat;
 using System;
+using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using SystemAudioRecordingSoftware.Core.Audio;
 using SystemAudioRecordingSoftware.Core.File;
+using SystemAudioRecordingSoftware.Core.Model;
 
-namespace SystemAudioRecordingSoftware.Core.Audio
+namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
     public sealed class AudioEngineService : IAudioEngineService
     {
@@ -15,6 +18,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private readonly IPlaybackService _playbackService;
         private readonly IRecorderService _recorderService;
         private readonly Subject<MinMaxValuesEventArgs> _sampleAvailable;
+        private readonly Subject<IReadOnlyList<Recording>> _recordingsChanged;
 
         public AudioEngineService(IFilePathProvider? filePathProvider = null,
                                   IRecorderService? recorderService = null,
@@ -25,6 +29,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             _playbackService = playbackService ?? Locator.Current.GetService<IPlaybackService>();
 
             _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
+            _recordingsChanged = new Subject<IReadOnlyList<Recording>>();
 
             _recorderService
                 .SampleAvailable
@@ -44,6 +49,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         public IObservable<CaptureState> CaptureStateChanged => _recorderService.CaptureStateChanged;
         public IObservable<PlaybackState> PlaybackStateChanged => _playbackService.PlaybackStateChanged;
         public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
+        public IObservable<IReadOnlyList<Recording>> RecordingsChanged => _recordingsChanged.AsObservable();
 
         public void Pause()
         {
@@ -80,6 +86,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private void OnRecordingStopped()
         {
             _playbackService.Initialize(_filePathProvider.CurrentRecordingFile);
+            _recordingsChanged.OnNext(_recorderService.GetAllRecordings());
         }
 
         private void OnSampleAvailable(float minValue, float maxValue)

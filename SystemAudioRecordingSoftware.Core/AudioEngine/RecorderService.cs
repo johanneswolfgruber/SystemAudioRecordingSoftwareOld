@@ -4,11 +4,15 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Splat;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using SystemAudioRecordingSoftware.Core.Audio;
 using SystemAudioRecordingSoftware.Core.File;
+using SystemAudioRecordingSoftware.Core.Model;
 
-namespace SystemAudioRecordingSoftware.Core.Audio
+namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
     public sealed class RecorderService : IRecorderService
     {
@@ -16,6 +20,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private readonly IFilePathProvider _filePathProvider;
         private readonly Subject<StoppedEventArgs> _recordingStopped;
         private readonly Subject<MinMaxValuesEventArgs> _sampleAvailable;
+        private readonly List<Recording> _recordings;
         private WasapiLoopbackCapture _capture;
         private WaveInSampleProvider _sampleProvider;
         private WaveFileWriter? _writer;
@@ -26,6 +31,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         public RecorderService(IFilePathProvider? filePathProvider = null)
         {
             _filePathProvider = filePathProvider ?? Locator.Current.GetService<IFilePathProvider>();
+            _recordings = new List<Recording>();
 
             _captureStateChanged = new Subject<CaptureState>();
             _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
@@ -39,6 +45,11 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         public IObservable<CaptureState> CaptureStateChanged => _captureStateChanged.AsObservable();
         public IObservable<StoppedEventArgs> RecordingStopped => _recordingStopped.AsObservable();
         public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
+
+        public IReadOnlyList<Recording> GetAllRecordings()
+        {
+            return _recordings;
+        }
 
         public void StartRecording()
         {
@@ -55,6 +66,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
 
         private void InitializeRecordingEngine()
         {
+            _filePathProvider.CreateUniqueFilePath();
             _capture = new WasapiLoopbackCapture();
             _sampleProvider = new WaveInSampleProvider(_capture.WaveFormat);
             _writer = new WaveFileWriter(_filePathProvider.CurrentRecordingFile, _capture.WaveFormat);
@@ -89,6 +101,12 @@ namespace SystemAudioRecordingSoftware.Core.Audio
             {
                 throw new InvalidOperationException("The WaveFileWriter is not set");
             }
+
+            var recording = new Recording(Path.GetFileNameWithoutExtension(_filePathProvider.CurrentRecordingFile),
+                                          _filePathProvider.CurrentRecordingFile,
+                                          _writer.TotalTime);
+
+            _recordings.Add(recording);
 
             _writer.Dispose();
             _writer = null;
