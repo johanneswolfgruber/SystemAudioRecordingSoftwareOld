@@ -13,7 +13,6 @@ namespace SystemAudioRecordingSoftware.Core.Bootstrapping
         {
             SetupLogging();
 
-            Locator.CurrentMutable.RegisterLazySingleton(() => new PlaybackService(), typeof(IPlaybackService));
             Locator.CurrentMutable.RegisterLazySingleton(() => new FilePathProvider(), typeof(IFilePathProvider));
             Locator.CurrentMutable.RegisterLazySingleton(() => new RecorderService(), typeof(IRecorderService));
             Locator.CurrentMutable.RegisterLazySingleton(() => new AudioEngineService(), typeof(IAudioEngineService));

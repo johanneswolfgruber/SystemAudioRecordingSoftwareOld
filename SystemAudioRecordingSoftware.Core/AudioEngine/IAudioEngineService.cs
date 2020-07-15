@@ -19,7 +19,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         void Pause();
 
-        void Play();
+        void Play(string filePath);
 
         void Record();
 

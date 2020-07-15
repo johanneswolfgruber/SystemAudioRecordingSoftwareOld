@@ -3,6 +3,8 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Reactive;
 using System.Windows.Forms;
 using SystemAudioRecordingSoftware.Core.AudioEngine;
@@ -10,7 +12,7 @@ using SystemAudioRecordingSoftware.Core.Model;
 
 namespace SystemAudioRecordingSoftware.UI.ViewModels
 {
-    public class RecordingViewModel
+    public class RecordingViewModel : ReactiveObject
     {
         private readonly IAudioEngineService _engineService;
 
@@ -34,10 +36,16 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
                 x => x.IsRecording, x => x.IsPlaying,
                 (r, p) => r || p);
 
-            PlayCommand = ReactiveCommand.Create(OnPlay);
+            var canPlay = this.WhenAnyValue(
+                x => x.IsRecording, x => x.IsPlaying,
+                (r, p) => !r && !p);
+
+            PlayCommand = ReactiveCommand.Create(OnPlay, canPlay);
             PauseCommand = ReactiveCommand.Create(OnPause);
             StopCommand = ReactiveCommand.Create(OnStop, canStop);
             SaveCommand = ReactiveCommand.Create(OnSave);
+            OpenFolderCommand = ReactiveCommand.Create(OnOpenFolder);
+            DeleteCommand = ReactiveCommand.Create(OnDelete);
         }
 
         [Reactive] public bool IsPlaying { get; set; }
@@ -57,6 +65,20 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
         public ReactiveCommand<Unit, Unit> StopCommand { get; }
 
         public ReactiveCommand<Unit, Unit> SaveCommand { get; }
+
+        public ReactiveCommand<Unit, Unit> OpenFolderCommand { get; }
+
+        public ReactiveCommand<Unit, Unit> DeleteCommand { get; }
+
+        private void OnDelete()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void OnOpenFolder()
+        {
+            Process.Start(Path.GetDirectoryName(FilePath));
+        }
 
         private void OnSave()
         {
@@ -84,7 +106,7 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
 
         private void OnPlay()
         {
-            _engineService.Play();
+            _engineService.Play(FilePath);
         }
     }
 }

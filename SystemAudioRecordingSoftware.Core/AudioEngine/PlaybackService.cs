@@ -16,11 +16,13 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         private IWavePlayer _playbackDevice;
         private IDisposable? _playbackStopped;
 
-        public PlaybackService()
+        public PlaybackService(string filePath)
         {
             _playbackDevice = new WaveOut { DesiredLatency = 200 };
             _playbackStateChanged = new Subject<PlaybackState>();
             _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
+
+            Initialize(filePath);
         }
 
         public bool IsPlaying => _playbackDevice?.PlaybackState == PlaybackState.Playing;
@@ -33,14 +35,6 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             CloseFile();
             _playbackDevice.Dispose();
             _playbackStopped?.Dispose();
-        }
-
-        public void Initialize(string fileName)
-        {
-            Stop();
-            CloseFile();
-            EnsureDeviceCreated();
-            OpenFile(fileName);
         }
 
         public void Pause()
@@ -72,6 +66,14 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
                 _fileStream.Position = 0;
                 _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
             }
+        }
+
+        private void Initialize(string filePath)
+        {
+            Stop();
+            CloseFile();
+            EnsureDeviceCreated();
+            OpenFile(filePath);
         }
 
         private void CloseFile()

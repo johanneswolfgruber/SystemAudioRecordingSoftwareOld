@@ -5,13 +5,15 @@ namespace SystemAudioRecordingSoftware.Core.Model
 {
     public sealed class Recording
     {
-        public Recording(string name, string filePath, TimeSpan length)
+        public Recording(Guid id, string name, string filePath, TimeSpan length)
         {
+            Id = id;
             Name = name;
             FilePath = filePath;
             Length = length;
         }
 
+        public Guid Id { get; }
         public string Name { get; }
 
         public string FilePath { get; }

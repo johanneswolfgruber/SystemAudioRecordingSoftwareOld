@@ -11,8 +11,6 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         IObservable<PlaybackState> PlaybackStateChanged { get; }
         IObservable<MinMaxValuesEventArgs> SampleAvailable { get; }
 
-        void Initialize(string fileName);
-
         void Pause();
 
         void Play();

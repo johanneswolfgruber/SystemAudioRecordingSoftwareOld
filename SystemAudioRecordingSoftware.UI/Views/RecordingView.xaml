@@ -1,0 +1,137 @@
+﻿<views:RecordingViewBase
+    x:Class="SystemAudioRecordingSoftware.UI.Views.RecordingView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:SystemAudioRecordingSoftware.UI.Views"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="clr-namespace:SystemAudioRecordingSoftware.UI.Views"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    <views:RecordingViewBase.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Button.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Card.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.CheckBox.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Flipper.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Popupbox.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </views:RecordingViewBase.Resources>
+    <Grid>
+        <materialDesign:Card
+            Padding="0"
+            Background="{DynamicResource PrimaryHueMidBrush}"
+            Foreground="{DynamicResource PrimaryHueDarkForegroundBrush}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Label
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="16,16,0,4"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Content="Name:"
+                    Foreground="{DynamicResource PrimaryHueDarkForegroundBrush}"
+                    Style="{StaticResource MaterialDesignLabel}" />
+                <TextBox
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="16,16,16,4"
+                    materialDesign:HintAssist.Hint="Name"
+                    Style="{StaticResource MaterialDesignTextBox}"
+                    Text="{Binding Name}" />
+                <Label
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="16,0,0,8"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Content="Length:"
+                    Foreground="{DynamicResource PrimaryHueDarkForegroundBrush}"
+                    Style="{StaticResource MaterialDesignLabel}" />
+                <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Margin="16,0,16,8"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource MaterialDesignBody2TextBlock}"
+                    Text="{Binding Length, StringFormat=hh\\:mm\\:ss\\.f}" />
+                <StackPanel
+                    Grid.Row="2"
+                    Grid.ColumnSpan="2"
+                    Margin="16,0,16,8"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal">
+                    <Button
+                        Width="30"
+                        Padding="2,0,2,0"
+                        HorizontalAlignment="Right"
+                        materialDesign:RippleAssist.IsCentered="True"
+                        Command="{Binding PlayCommand}"
+                        Style="{StaticResource MaterialDesignToolForegroundButton}">
+                        <materialDesign:PackIcon Kind="Play" />
+                    </Button>
+                    <Button
+                        Width="30"
+                        Padding="2,0,2,0"
+                        HorizontalAlignment="Right"
+                        materialDesign:RippleAssist.IsCentered="True"
+                        Command="{Binding PauseCommand}"
+                        Style="{StaticResource MaterialDesignToolForegroundButton}">
+                        <materialDesign:PackIcon Kind="Pause" />
+                    </Button>
+                    <Button
+                        Width="30"
+                        Padding="2,0,2,0"
+                        HorizontalAlignment="Right"
+                        materialDesign:RippleAssist.IsCentered="True"
+                        Command="{Binding StopCommand}"
+                        Style="{StaticResource MaterialDesignToolForegroundButton}">
+                        <materialDesign:PackIcon Kind="Stop" />
+                    </Button>
+                    <Button
+                        Width="30"
+                        Padding="2,0,2,0"
+                        HorizontalAlignment="Right"
+                        materialDesign:RippleAssist.IsCentered="True"
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource MaterialDesignToolForegroundButton}">
+                        <materialDesign:PackIcon Kind="Floppy" />
+                    </Button>
+                    <Button
+                        Width="30"
+                        Padding="2,0,2,0"
+                        HorizontalAlignment="Right"
+                        materialDesign:RippleAssist.IsCentered="True"
+                        Command="{Binding OpenFolderCommand}"
+                        Style="{StaticResource MaterialDesignToolForegroundButton}">
+                        <materialDesign:PackIcon Kind="Folder" />
+                    </Button>
+                    <Button
+                        Width="30"
+                        Padding="2,0,2,0"
+                        HorizontalAlignment="Right"
+                        materialDesign:RippleAssist.IsCentered="True"
+                        Command="{Binding DeleteCommand}"
+                        Style="{StaticResource MaterialDesignToolForegroundButton}">
+                        <materialDesign:PackIcon Kind="Delete" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+    </Grid>
+</views:RecordingViewBase>

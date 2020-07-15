@@ -2,7 +2,6 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
-using System.Collections.Generic;
 using SystemAudioRecordingSoftware.Core.Audio;
 using SystemAudioRecordingSoftware.Core.Model;
 
@@ -14,11 +13,10 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         IObservable<CaptureState> CaptureStateChanged { get; }
         IObservable<StoppedEventArgs> RecordingStopped { get; }
         IObservable<MinMaxValuesEventArgs> SampleAvailable { get; }
+        IObservable<Recording> NewRecordingCreated { get; }
 
         void StartRecording();
 
         void StopRecording();
-
-        IReadOnlyList<Recording> GetAllRecordings();
     }
 }
