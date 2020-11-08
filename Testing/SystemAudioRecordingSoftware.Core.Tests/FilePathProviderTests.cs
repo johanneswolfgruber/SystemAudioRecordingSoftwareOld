@@ -1,10 +1,9 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
 using FluentAssertions;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using SystemAudioRecordingSoftware.Core.File;
 
 namespace SystemAudioRecordingSoftware.Core.Tests

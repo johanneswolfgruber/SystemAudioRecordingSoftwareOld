@@ -3,7 +3,6 @@
 using ReactiveUI;
 using Splat;
 using System.Reflection;
-using System.Windows;
 using SystemAudioRecordingSoftware.Core.Bootstrapping;
 
 namespace SystemAudioRecordingSoftware.UI
@@ -11,7 +10,7 @@ namespace SystemAudioRecordingSoftware.UI
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application
+    public partial class App
     {
         public App()
         {

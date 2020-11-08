@@ -7,7 +7,7 @@ namespace SystemAudioRecordingSoftware.UI.Views
     /// <summary>
     /// Interaction logic for RecordingView.xaml
     /// </summary>
-    public partial class RecordingView : RecordingViewBase
+    public partial class RecordingView
     {
         public RecordingView()
         {

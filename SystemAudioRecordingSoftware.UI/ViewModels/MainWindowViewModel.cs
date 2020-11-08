@@ -1,15 +1,14 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 
-using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
-using Splat;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
-using System.Reactive.Linq;
 using SystemAudioRecordingSoftware.Core.Audio;
 using SystemAudioRecordingSoftware.Core.AudioEngine;
+using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
+using Splat;
 
 namespace SystemAudioRecordingSoftware.UI.ViewModels
 {
@@ -22,33 +21,39 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
         {
             _engineService = engineService ?? Locator.Current.GetService<IAudioEngineService>();
 
-            _engineService
-                .CaptureStateChanged
+            _engineService.CaptureStateChanged
                 .Subscribe(_ => IsRecording = _engineService.IsRecording);
 
-            _engineService
-                .SampleAvailable
-                .Subscribe(x => OnSampleAvailable(x));
+            _engineService.SampleAvailable.Subscribe(OnSampleAvailable);
 
-            _engineService
-                .RecordingsChanged
-                .Subscribe(x => Recordings =
-                    new ObservableCollection<RecordingViewModel>(x.Select(r => new RecordingViewModel(r))));
+            _engineService.RecordingsChanged
+                .Subscribe(x => Recordings = new ObservableCollection<RecordingViewModel>(
+                    x.Select(r => new RecordingViewModel(r))));
 
-            var canStop = this.WhenAnyValue(
-                x => x.IsRecording);
+            var canStop = this.WhenAnyValue(x => x.IsRecording);
 
             RecordCommand = ReactiveCommand.Create(OnRecord);
             StopCommand = ReactiveCommand.Create(OnStop, canStop);
             Recordings = new ObservableCollection<RecordingViewModel>();
+
+            this.WhenAnyValue(x => x.SelectedRecording).Subscribe(x => FilePath = x?.FilePath);
         }
 
         [Reactive] public bool IsRecording { get; set; }
+
         public ReactiveCommand<Unit, Unit> RecordCommand { get; }
+
         public ReactiveCommand<Unit, Unit> StopCommand { get; }
+
         [Reactive] public string Title { get; set; } = "System Audio Recording Software";
+
         [Reactive] public ObservableCollection<RecordingViewModel> Recordings { get; set; }
+
+        [Reactive] public RecordingViewModel? SelectedRecording { get; set; }
+
         public object Visualization => _visualization.Content;
+
+        [Reactive] public string? FilePath { get; set; }
 
         private void OnRecord()
         {

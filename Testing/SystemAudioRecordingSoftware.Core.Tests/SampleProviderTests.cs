@@ -6,7 +6,6 @@ using NAudio.Wave;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Reactive.Linq;
 using SystemAudioRecordingSoftware.Core.Audio;
 
 namespace SystemAudioRecordingSoftware.Core.Tests

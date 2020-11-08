@@ -9,7 +9,7 @@ namespace SystemAudioRecordingSoftware.UI.Views
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : MainWindowBase
+    public partial class MainWindow
     {
         public MainWindow()
         {
@@ -41,6 +41,16 @@ namespace SystemAudioRecordingSoftware.UI.Views
                 this.OneWayBind(ViewModel,
                     viewModel => viewModel.Recordings,
                     view => view.RecordingsList.ItemsSource)
+                    .DisposeWith(disposableRegistration);
+
+                this.Bind(ViewModel,
+                    viewModel => viewModel.SelectedRecording,
+                    view => view.RecordingsList.SelectedItem)
+                    .DisposeWith(disposableRegistration);
+
+                this.OneWayBind(ViewModel,
+                    viewModel => viewModel.FilePath,
+                    view => view.Waveform.FilePath)
                     .DisposeWith(disposableRegistration);
             });
         }

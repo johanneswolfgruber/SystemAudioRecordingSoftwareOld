@@ -25,7 +25,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             Initialize(filePath);
         }
 
-        public bool IsPlaying => _playbackDevice?.PlaybackState == PlaybackState.Playing;
+        public bool IsPlaying => _playbackDevice.PlaybackState == PlaybackState.Playing;
         public IObservable<PlaybackState> PlaybackStateChanged => _playbackStateChanged.AsObservable();
         public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
 
@@ -93,10 +93,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         private void EnsureDeviceCreated()
         {
-            if (_playbackDevice == null)
-            {
-                CreateDevice();
-            }
+            CreateDevice();
         }
 
         private void OnPlaybackStopped()

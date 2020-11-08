@@ -5,11 +5,11 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:rxui="http://reactiveui.net"
     xmlns:views="clr-namespace:SystemAudioRecordingSoftware.UI.Views"
-    xmlns:vms="clr-namespace:SystemAudioRecordingSoftware.UI.ViewModels"
-    Width="800"
-    Height="400"
+    Width="1200"
+    Height="800"
+    MinWidth="600"
+    MinHeight="500"
     Background="{DynamicResource MaterialDesignPaper}"
     FontFamily="{materialDesign:MaterialDesignFont}"
     TextElement.FontSize="14"
@@ -32,16 +32,13 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
         <Button
@@ -56,7 +53,7 @@
         <Button
             x:Name="StopButton"
             Grid.Row="0"
-            Grid.Column="2"
+            Grid.Column="1"
             Margin="8"
             VerticalAlignment="Center"
             Style="{StaticResource MaterialDesignIconButton}">
@@ -66,13 +63,14 @@
         <ContentPresenter
             x:Name="VisualizationContent"
             Grid.Row="1"
-            Grid.ColumnSpan="7"
+            Grid.Column="0"
+            Grid.ColumnSpan="3"
             Margin="8" />
 
         <Label
             x:Name="RecordingsListLabel"
             Grid.Row="0"
-            Grid.Column="7"
+            Grid.Column="3"
             Margin="8"
             HorizontalContentAlignment="Center"
             VerticalContentAlignment="Center"
@@ -82,7 +80,8 @@
         <ListView
             x:Name="RecordingsList"
             Grid.Row="1"
-            Grid.Column="7"
+            Grid.Column="3"
+            Width="350"
             Margin="8"
             HorizontalContentAlignment="Stretch"
             Style="{StaticResource MaterialDesignListView}">
@@ -92,5 +91,13 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+
+        <views:WaveformRenderer
+            x:Name="Waveform"
+            Grid.Row="2"
+            Grid.Column="0"
+            Grid.ColumnSpan="4"
+            Height="200"
+            Margin="8" />
     </Grid>
 </views:MainWindowBase>

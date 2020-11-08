@@ -1,9 +1,9 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
 using MaterialDesignThemes.Wpf;
 using System;
 using System.Reactive.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -12,7 +12,7 @@ namespace SystemAudioRecordingSoftware.UI.Views
     /// <summary>
     /// Interaction logic for PolygonWaveFormControl.xaml
     /// </summary>
-    public partial class PolygonWaveFormControl : UserControl
+    public partial class PolygonWaveFormControl
     {
         private readonly int _blankZone = 10;
         private readonly Polygon _waveForm = new Polygon();
@@ -25,7 +25,7 @@ namespace SystemAudioRecordingSoftware.UI.Views
         {
             Observable
                 .FromEventPattern<SizeChangedEventArgs>(this, nameof(SizeChanged))
-                .Subscribe(x => OnSizeChanged(x.EventArgs));
+                .Subscribe(x => OnSizeChanged());
 
             InitializeComponent();
 
@@ -97,7 +97,7 @@ namespace SystemAudioRecordingSoftware.UI.Views
             _renderPosition++;
         }
 
-        private void OnSizeChanged(SizeChangedEventArgs _)
+        private void OnSizeChanged()
         {
             _renderPosition = 0;
             ClearAllPoints();
