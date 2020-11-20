@@ -2,31 +2,35 @@
 
 using NAudio.Wave;
 using System;
+using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using SystemAudioRecordingSoftware.Core.Model;
 
 namespace SystemAudioRecordingSoftware.Core.Audio
 {
     internal class SampleProviderBase
     {
-        private readonly Subject<MinMaxValuesEventArgs> _sampleAvailable;
+        private readonly Subject<AudioDataDto> _audioDataAvailable;
         private int _count;
         private float _maxValue;
         private float _minValue;
 
         public SampleProviderBase(WaveFormat waveFormat)
         {
-            _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
+            _audioDataAvailable = new Subject<AudioDataDto>();
             WaveFormat = waveFormat;
             NotificationCount = WaveFormat.SampleRate / 100;
         }
 
         public int NotificationCount { get; set; }
-        public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
+        public IObservable<AudioDataDto> AudioDataAvailable => _audioDataAvailable.AsObservable();
         public WaveFormat WaveFormat { get; }
 
         protected void Add(float[] buffer, int offset, int numSamples)
         {
+            var audioData = new List<float>();
+            
             for (int n = 0; n < numSamples; n += WaveFormat.Channels)
             {
                 var value = buffer[n + offset];
@@ -38,10 +42,13 @@ namespace SystemAudioRecordingSoftware.Core.Audio
 
                 if (_count >= NotificationCount && NotificationCount > 0)
                 {
-                    _sampleAvailable.OnNext(new MinMaxValuesEventArgs(_minValue, _maxValue));
+                    audioData.Add(_maxValue);
                     Reset();
                 }
             }
+            
+            _audioDataAvailable
+                .OnNext(new AudioDataDto(audioData, numSamples / WaveFormat.Channels, WaveFormat.SampleRate));
         }
 
         private void Reset()

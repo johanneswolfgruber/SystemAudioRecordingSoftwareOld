@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>netcoreapp5.0</TargetFramework>
+    <LangVersion>9</LangVersion>
     <Nullable>enable</Nullable>
     <OutputPath>$(HostOutputPath)</OutputPath>
     <AssemblyName>SystemAudioRecordingSoftware.Core</AssemblyName>
@@ -9,9 +10,9 @@
 
   <ItemGroup>
     <PackageReference Include="NAudio" Version="1.10.0" />
-    <PackageReference Include="NLog" Version="4.7.4" />
-    <PackageReference Include="ReactiveUI" Version="11.5.35" />
-    <PackageReference Include="Splat.NLog" Version="9.5.37" />
+    <PackageReference Include="NLog" Version="4.7.5" />
+    <PackageReference Include="ReactiveUI" Version="12.1.5" />
+    <PackageReference Include="Splat.NLog" Version="9.7.1" />
   </ItemGroup>
 
   <ItemGroup>

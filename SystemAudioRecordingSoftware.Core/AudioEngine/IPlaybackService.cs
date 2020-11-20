@@ -1,7 +1,8 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
 using NAudio.Wave;
 using System;
-using SystemAudioRecordingSoftware.Core.Audio;
+using SystemAudioRecordingSoftware.Core.Model;
 
 namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
@@ -9,7 +10,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
     {
         bool IsPlaying { get; }
         IObservable<PlaybackState> PlaybackStateChanged { get; }
-        IObservable<MinMaxValuesEventArgs> SampleAvailable { get; }
+        IObservable<AudioDataDto> AudioDataAvailable { get; }
 
         void Pause();
 

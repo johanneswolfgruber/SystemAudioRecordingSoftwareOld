@@ -1,9 +1,9 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
+using DynamicData;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
-using System.Collections.Generic;
-using SystemAudioRecordingSoftware.Core.Audio;
 using SystemAudioRecordingSoftware.Core.Model;
 
 namespace SystemAudioRecordingSoftware.Core.AudioEngine
@@ -14,8 +14,9 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         bool IsRecording { get; }
         IObservable<CaptureState> CaptureStateChanged { get; }
         IObservable<PlaybackState> PlaybackStateChanged { get; }
-        IObservable<MinMaxValuesEventArgs> SampleAvailable { get; }
-        IObservable<IReadOnlyList<Recording>> RecordingsChanged { get; }
+        IObservable<AudioDataDto> AudioDataAvailable { get; }
+
+        IObservable<IChangeSet<RecordingDto, Guid>> RecordingsChanged();
 
         void Pause();
 
@@ -23,8 +24,14 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         void Record();
 
+        void SnipRecording();
+
         void Save(string filePath);
 
         void Stop();
+
+        void RemoveRecording(Guid id);
+        
+        AudioDataDto GetAudioDisplayData(string filePath);
     }
 }

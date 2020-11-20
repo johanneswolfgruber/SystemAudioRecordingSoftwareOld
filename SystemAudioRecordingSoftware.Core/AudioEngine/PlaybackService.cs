@@ -1,33 +1,36 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
 using NAudio.Wave;
 using System;
 using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using SystemAudioRecordingSoftware.Core.Audio;
+using SystemAudioRecordingSoftware.Core.Model;
 
 namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
-    public class PlaybackService : IPlaybackService
+    internal class PlaybackService : IPlaybackService
     {
         private readonly Subject<PlaybackState> _playbackStateChanged;
-        private readonly Subject<MinMaxValuesEventArgs> _sampleAvailable;
+        private readonly Subject<AudioDataDto> _audioDataAvailable;
         private WaveStream? _fileStream;
         private IWavePlayer _playbackDevice;
         private IDisposable? _playbackStopped;
+        private IDisposable? _audioDataAvailableDisposable;
 
         public PlaybackService(string filePath)
         {
             _playbackDevice = new WaveOut { DesiredLatency = 200 };
             _playbackStateChanged = new Subject<PlaybackState>();
-            _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
+            _audioDataAvailable = new Subject<AudioDataDto>();
 
             Initialize(filePath);
         }
 
         public bool IsPlaying => _playbackDevice.PlaybackState == PlaybackState.Playing;
         public IObservable<PlaybackState> PlaybackStateChanged => _playbackStateChanged.AsObservable();
-        public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
+        public IObservable<AudioDataDto> AudioDataAvailable => _audioDataAvailable.AsObservable();
 
         public void Dispose()
         {
@@ -35,6 +38,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             CloseFile();
             _playbackDevice.Dispose();
             _playbackStopped?.Dispose();
+            _audioDataAvailableDisposable?.Dispose();
         }
 
         public void Pause()
@@ -45,27 +49,30 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         public void Play()
         {
-            if (_fileStream != null &&
-                _playbackDevice.PlaybackState != PlaybackState.Playing)
+            if (_fileStream == null || _playbackDevice.PlaybackState == PlaybackState.Playing)
             {
-                if (_fileStream.Position == _fileStream.Length)
-                {
-                    _fileStream.Position = 0;
-                }
-
-                _playbackDevice.Play();
-                _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
+                return;
             }
+
+            if (_fileStream.Position == _fileStream.Length)
+            {
+                _fileStream.Position = 0;
+            }
+
+            _playbackDevice.Play();
+            _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
         }
 
         public void Stop()
         {
             _playbackDevice.Stop();
-            if (_fileStream != null)
+            if (_fileStream == null)
             {
-                _fileStream.Position = 0;
-                _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
+                return;
             }
+
+            _fileStream.Position = 0;
+            _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
         }
 
         private void Initialize(string filePath)
@@ -109,9 +116,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
                 _fileStream = inputStream;
                 var provider = new SampleProvider(inputStream);
 
-                provider
-                    .SampleAvailable
-                    .Subscribe(x => _sampleAvailable.OnNext(new MinMaxValuesEventArgs(x.MinValue, x.MaxValue)));
+                _audioDataAvailableDisposable = provider.AudioDataAvailable.Subscribe(x => _audioDataAvailable.OnNext(x));
 
                 _playbackDevice.Init(provider);
             }

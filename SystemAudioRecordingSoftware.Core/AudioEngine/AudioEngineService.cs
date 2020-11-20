@@ -1,13 +1,13 @@
 ﻿// (c) Johannes Wolfgruber, 2020
+
+using DynamicData;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Splat;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using SystemAudioRecordingSoftware.Core.Audio;
 using SystemAudioRecordingSoftware.Core.File;
 using SystemAudioRecordingSoftware.Core.Model;
 
@@ -15,38 +15,39 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
     public sealed class AudioEngineService : IAudioEngineService
     {
+        private readonly Subject<AudioDataDto> _audioDataAvailable;
+        private readonly IAudioFileLoaderService _audioFileLoaderService;
         private readonly IFilePathProvider _filePathProvider;
-        private readonly IRecorderService _recorderService;
-        private readonly Subject<MinMaxValuesEventArgs> _sampleAvailable;
-        private readonly Subject<IReadOnlyList<Recording>> _recordingsChanged;
         private readonly Subject<PlaybackState> _playBackStateChanged;
-        private readonly Dictionary<Guid, Recording> _recordings;
+        private readonly IRecorderService _recorderService;
+        private readonly SourceCache<Recording, Guid> _recordings;
         private string _currentPlayBackFilePath;
         private IPlaybackService? _playbackService;
 
         public AudioEngineService(IFilePathProvider? filePathProvider = null,
-                                  IRecorderService? recorderService = null)
+            IRecorderService? recorderService = null,
+            IAudioFileLoaderService? audioFileLoaderService = null)
         {
             _filePathProvider = filePathProvider ?? Locator.Current.GetService<IFilePathProvider>();
             _recorderService = recorderService ?? Locator.Current.GetService<IRecorderService>();
+            _audioFileLoaderService = audioFileLoaderService ?? Locator.Current.GetService<IAudioFileLoaderService>();
 
-            _sampleAvailable = new Subject<MinMaxValuesEventArgs>();
-            _recordingsChanged = new Subject<IReadOnlyList<Recording>>();
+            _audioDataAvailable = new Subject<AudioDataDto>();
             _playBackStateChanged = new Subject<PlaybackState>();
-            _recordings = new Dictionary<Guid, Recording>();
+            _recordings = new SourceCache<Recording, Guid>(r => r.Id);
             _currentPlayBackFilePath = string.Empty;
 
             _recorderService
-                .SampleAvailable
-                .Subscribe(x => OnSampleAvailable(x.MinValue, x.MaxValue));
+                .AudioDataAvailable
+                .Subscribe(x => _audioDataAvailable.OnNext(x));
 
             _recorderService
                 .RecordingStopped
-                .Subscribe(x => OnRecordingStopped());
+                .Subscribe(_ => OnRecordingStopped());
 
             _recorderService
                 .NewRecordingCreated
-                .Subscribe(x => OnNewRecordingCreated(x));
+                .Subscribe(OnNewRecordingCreated);
         }
 
         public bool IsPlaying => _playbackService != null && _playbackService.IsPlaying;
@@ -57,9 +58,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         public IObservable<PlaybackState> PlaybackStateChanged => _playBackStateChanged.AsObservable();
 
-        public IObservable<MinMaxValuesEventArgs> SampleAvailable => _sampleAvailable.AsObservable();
-
-        public IObservable<IReadOnlyList<Recording>> RecordingsChanged => _recordingsChanged.AsObservable();
+        public IObservable<AudioDataDto> AudioDataAvailable => _audioDataAvailable.AsObservable();
 
         public void Pause()
         {
@@ -73,8 +72,8 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
                 _currentPlayBackFilePath = filePath;
                 _playbackService = new PlaybackService(filePath);
                 _playbackService
-                    .SampleAvailable
-                    .Subscribe(x => OnSampleAvailable(x.MinValue, x.MaxValue));
+                    .AudioDataAvailable
+                    .Subscribe(x => _audioDataAvailable.OnNext(x));
                 _playbackService
                     .PlaybackStateChanged
                     .Subscribe(x => _playBackStateChanged.OnNext(x));
@@ -86,6 +85,11 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         public void Record()
         {
             _recorderService.StartRecording();
+        }
+
+        public void SnipRecording()
+        {
+            _recorderService.SnipRecording();
         }
 
         public void Save(string filePath)
@@ -105,22 +109,33 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             }
         }
 
+        public IObservable<IChangeSet<RecordingDto, Guid>> RecordingsChanged() => 
+            _recordings.Connect().Transform(r => new RecordingDto(
+                r.Id, 
+                r.Name, 
+                r.Tracks.Select(t => new TrackDto(t.RecordingId, t.Name, t.FilePath, t.Length)).ToList(), 
+                r.FilePath, 
+                r.Length));
+
+        public void RemoveRecording(Guid id)
+        {
+            _recordings.Remove(id);
+        }
+
+        public AudioDataDto GetAudioDisplayData(string filePath)
+        {
+            var data = _audioFileLoaderService.GetAudioDisplayData(filePath);
+            return new AudioDataDto(data.Buffer, data.TotalNumberOfSingleChannelSamples, data.SampleRate);
+        }
+
         private void OnNewRecordingCreated(Recording recording)
         {
-            _recordings.Add(recording.Id, recording);
-            _recordingsChanged.OnNext(_recordings
-                .Select(x => x.Value)
-                .ToList());
+            _recordings.AddOrUpdate(recording);
         }
 
         private void OnRecordingStopped()
         {
             //_playbackService.Initialize(_filePathProvider.CurrentRecordingFile);
-        }
-
-        private void OnSampleAvailable(float minValue, float maxValue)
-        {
-            _sampleAvailable.OnNext(new MinMaxValuesEventArgs(minValue, maxValue));
         }
     }
 }

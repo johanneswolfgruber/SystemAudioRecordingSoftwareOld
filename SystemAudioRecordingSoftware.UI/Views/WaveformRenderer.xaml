@@ -16,6 +16,8 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -25,15 +27,16 @@
 
         <Border
             Grid.RowSpan="2"
-            Grid.ColumnSpan="6"
+            Grid.ColumnSpan="8"
             Margin="-2"
-            BorderBrush="White"
+            BorderBrush="Gray"
             BorderThickness="2" />
         <ScrollViewer
             Grid.Row="0"
             Grid.Column="0"
             Grid.RowSpan="2"
-            Grid.ColumnSpan="6"
+            Grid.ColumnSpan="8"
+            ScrollChanged="ScrollViewer_OnScrollChanged"
             HorizontalScrollBarVisibility="Auto"
             VerticalScrollBarVisibility="Hidden">
             <skia:SKElement
@@ -62,27 +65,48 @@
             <materialDesign:PackIcon Kind="ZoomOut" />
         </Button>
         <Button
-            x:Name="SnipButton"
             Grid.Row="0"
             Grid.Column="2"
             Margin="2"
+            Style="{StaticResource MaterialDesignIconButton}">
+            <materialDesign:PackIcon Kind="Play" />
+        </Button>
+        <Button
+            Grid.Row="0"
+            Grid.Column="3"
+            Margin="2"
+            Style="{StaticResource MaterialDesignIconButton}">
+            <materialDesign:PackIcon Kind="Pause" />
+        </Button>
+        <Button
+            Grid.Row="0"
+            Grid.Column="4"
+            Margin="2"
+            Style="{StaticResource MaterialDesignIconButton}">
+            <materialDesign:PackIcon Kind="Stop" />
+        </Button>
+        <Button
+            x:Name="SnipButton"
+            Grid.Row="0"
+            Grid.Column="5"
+            Margin="2"
             Click="SnipButton_Click"
             Style="{StaticResource MaterialDesignIconButton}">
-            <materialDesign:PackIcon Kind="Scissors" />
+            <materialDesign:PackIcon Kind="Plus" />
         </Button>
         <Button
             x:Name="RemoveSnipButton"
             Grid.Row="0"
-            Grid.Column="3"
+            Grid.Column="6"
             Margin="2"
             Click="RemoveSnipButton_Click"
             Style="{StaticResource MaterialDesignIconButton}">
-            <materialDesign:PackIcon Kind="Delete" />
+            <materialDesign:PackIcon Kind="Minus" />
         </Button>
         <TextBlock
             x:Name="LastClickPosition" 
             VerticalAlignment="Center"
             Grid.Row="0"
-            Grid.Column="4" />
+            Grid.Column="7" />
     </Grid>
 </UserControl>
