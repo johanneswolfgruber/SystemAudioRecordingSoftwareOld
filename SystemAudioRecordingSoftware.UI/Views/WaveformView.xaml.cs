@@ -1,5 +1,6 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 
+using ReactiveUI;
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 using SkiaSharp.Views.WPF;
@@ -9,12 +10,13 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using SystemAudioRecordingSoftware.UI.ViewModels;
 
 namespace SystemAudioRecordingSoftware.UI.Views
 {
     public class Waveform
     {
-        private const double MaxWidth = 2500;
+        private const double MaxWidth = 1500;
         private readonly List<float> _audioData = new();
         private readonly List<TimeSpan> _snipTimestamps = new();
         private double _currentAudioWidth;
@@ -178,12 +180,12 @@ namespace SystemAudioRecordingSoftware.UI.Views
         }
     }
 
-    public partial class WaveformRenderer
+    public partial class WaveformView
     {
         private readonly Waveform _waveform = new Waveform();
         private bool _autoScroll = true;
 
-        public WaveformRenderer()
+        public WaveformView()
         {
             InitializeComponent();
         }
@@ -285,5 +287,9 @@ namespace SystemAudioRecordingSoftware.UI.Views
             _waveform.ZoomOut();
             SkiaElement.InvalidateVisual();
         }
+    }
+
+    public class WaveformRendererViewBase : ReactiveUserControl<WaveformViewModel>
+    {
     }
 }

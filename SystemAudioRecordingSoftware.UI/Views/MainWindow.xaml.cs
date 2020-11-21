@@ -2,7 +2,6 @@
 
 using ReactiveUI;
 using System.Reactive.Disposables;
-using System.Windows;
 using SystemAudioRecordingSoftware.UI.ViewModels;
 
 namespace SystemAudioRecordingSoftware.UI.Views
@@ -16,57 +15,49 @@ namespace SystemAudioRecordingSoftware.UI.Views
         {
             InitializeComponent();
             ViewModel = new MainWindowViewModel();
-            DataContext = ViewModel;
 
-            this.WhenActivated(disposableRegistration =>
+            this.WhenActivated(disposables =>
             {
                 this.Bind(ViewModel,
-                    viewModel => viewModel.Title,
-                    view => view.Title)
-                    .DisposeWith(disposableRegistration);
+                        viewModel => viewModel.Title,
+                        view => view.Title)
+                    .DisposeWith(disposables);
 
                 this.BindCommand(ViewModel,
-                    viewModel => viewModel.RecordCommand,
-                    view => view.RecordButton)
-                    .DisposeWith(disposableRegistration);
+                        viewModel => viewModel.RecordCommand,
+                        view => view.RecordButton)
+                    .DisposeWith(disposables);
 
                 this.BindCommand(ViewModel,
-                    viewModel => viewModel.StopCommand,
-                    view => view.StopButton)
-                    .DisposeWith(disposableRegistration);
-                
+                        viewModel => viewModel.StopCommand,
+                        view => view.StopButton)
+                    .DisposeWith(disposables);
+
                 this.BindCommand(ViewModel,
                         viewModel => viewModel.SnipCommand,
                         view => view.SnipButton)
-                    .DisposeWith(disposableRegistration);
-                
+                    .DisposeWith(disposables);
+
                 this.BindCommand(ViewModel,
                         viewModel => viewModel.BurnCommand,
                         view => view.BurnButton)
-                    .DisposeWith(disposableRegistration);
+                    .DisposeWith(disposables);
 
-                this.BindCommand(ViewModel,
-                        viewModel => viewModel.DeleteCommand,
-                        view => view.DeleteButton)
-                    .DisposeWith(disposableRegistration);
+                this.OneWayBind(ViewModel,
+                        viewModel => viewModel.WaveformRenderer,
+                        view => view.MainContent.Content)
+                    .DisposeWith(disposables);
 
-                    this.OneWayBind(ViewModel,
-                    viewModel => viewModel.WaveformRenderer,
-                    view => view.MainContent.Content)
-                    .DisposeWith(disposableRegistration);
+                this.OneWayBind(ViewModel,
+                        viewModel => viewModel.RecordingsList,
+                        view => view.RecordingsList.ViewModel)
+                    .DisposeWith(disposables);
             });
-        }
-        
-        /// <summary>
-        /// TreesView's SelectedItem is read-only. Hence we can't bind it. There is a way to obtain a selected item.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-        {
-            ViewModel?.OnSelectedItemChanged(e.NewValue);
         }
     }
 
-    public class MainWindowBase : ReactiveWindow<MainWindowViewModel> { /* No code needed here */ }
+    public class MainWindowBase : ReactiveWindow<MainWindowViewModel>
+    {
+        /* No code needed here */
+    }
 }

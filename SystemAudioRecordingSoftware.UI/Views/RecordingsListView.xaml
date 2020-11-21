@@ -1,0 +1,116 @@
+﻿<views:RecordingsListViewBase
+    x:Class="SystemAudioRecordingSoftware.UI.Views.RecordingsListView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="clr-namespace:SystemAudioRecordingSoftware.UI.Views"
+    xmlns:viewmodel="clr-namespace:SystemAudioRecordingSoftware.UI.ViewModels"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    <views:RecordingsListViewBase.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Button.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </views:RecordingsListViewBase.Resources>
+    <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            
+            <Border
+                Grid.RowSpan="2"
+                Margin="6"
+                BorderBrush="Gray"
+                BorderThickness="2" />
+            
+            <TreeView
+                x:Name="RecordingsTreeView"
+                Grid.Row="0"
+                Width="350"
+                Margin="8"
+                ItemsSource="{Binding Recordings}"
+                SelectedItemChanged="TreeView_SelectedItemChanged">
+                <TreeView.Resources>
+                    <HierarchicalDataTemplate
+                        DataType="{x:Type viewmodel:RecordingViewModel}"
+                        ItemsSource="{Binding Tracks}">
+                        <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
+                            <TextBox
+                                materialDesign:HintAssist.Hint="Name"
+                                Style="{StaticResource MaterialDesignTextBox}"
+                                Text="{Binding Name}"
+                                Margin="2" />
+                            <StackPanel Orientation="Horizontal">
+                                <Label
+                                    Margin="4,0,0,2"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Content="Length:"
+                                    Style="{StaticResource MaterialDesignLabel}" />
+                                <TextBlock
+                                    Margin="4,0,4,2"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                    Text="{Binding Length, StringFormat=hh\\:mm\\:ss\\.f}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </HierarchicalDataTemplate>
+                    <DataTemplate
+                        DataType="{x:Type viewmodel:TrackViewModel}">
+                        <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
+                            <TextBox
+                                materialDesign:HintAssist.Hint="Name"
+                                Style="{StaticResource MaterialDesignTextBox}"
+                                Text="{Binding Name}"
+                                Margin="2" />
+                            <StackPanel Orientation="Horizontal">
+                                <Label
+                                    Margin="4,0,0,2"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Content="Length:"
+                                    Style="{StaticResource MaterialDesignLabel}" />
+                                <TextBlock
+                                    Margin="4,0,4,2"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                    Text="{Binding Length, StringFormat=hh\\:mm\\:ss\\.f}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                </TreeView.Resources>
+            </TreeView>
+            
+            <StackPanel Orientation="Horizontal" Grid.Row="1">
+                <Button
+                    x:Name="ImportButton"
+                    Margin="8"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource MaterialDesignIconButton}">
+                    <materialDesign:PackIcon Kind="Import" />
+                </Button>
+                <Button
+                    x:Name="ExportButton"
+                    Margin="8"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource MaterialDesignIconButton}">
+                    <materialDesign:PackIcon Kind="Export" />
+                </Button>
+                <Button
+                    x:Name="DeleteButton"
+                    Margin="8"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource MaterialDesignIconButton}">
+                    <materialDesign:PackIcon Kind="Delete" />
+                </Button>
+            </StackPanel>
+        </Grid>
+</views:RecordingsListViewBase>
