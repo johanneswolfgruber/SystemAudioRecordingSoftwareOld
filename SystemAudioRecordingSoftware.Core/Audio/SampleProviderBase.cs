@@ -30,14 +30,12 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         protected void Add(float[] buffer, int offset, int numSamples)
         {
             var audioData = new List<float>();
-            
+
             for (int n = 0; n < numSamples; n += WaveFormat.Channels)
             {
                 var value = buffer[n + offset];
 
                 _maxValue = Math.Max(_maxValue, value);
-                _minValue = Math.Min(_minValue, value);
-
                 _count++;
 
                 if (_count >= NotificationCount && NotificationCount > 0)
@@ -46,7 +44,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
                     Reset();
                 }
             }
-            
+
             _audioDataAvailable
                 .OnNext(new AudioDataDto(audioData, numSamples / WaveFormat.Channels, WaveFormat.SampleRate));
         }

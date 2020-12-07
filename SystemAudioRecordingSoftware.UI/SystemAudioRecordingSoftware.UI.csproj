@@ -6,17 +6,19 @@
     <OutputPath>$(HostOutputPath)</OutputPath>
     <AssemblyName>SystemAudioRecordingSoftware</AssemblyName>
     <LangVersion>9</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="MaterialDesignThemes" Version="3.2.0" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.19" />
     <PackageReference Include="ReactiveUI" Version="12.1.5" />
     <PackageReference Include="ReactiveUI.Events.WPF" Version="12.1.5" />
     <PackageReference Include="ReactiveUI.Fody" Version="12.1.5" />
     <PackageReference Include="ReactiveUI.WPF" Version="12.1.5" />
-    <PackageReference Include="SkiaSharp.Views.WPF" Version="2.80.2" />
   </ItemGroup>
+
   <ItemGroup>
+    <ProjectReference Include="..\SystemAudioRecordingSoftware.Common.UI\SystemAudioRecordingSoftware.Common.UI.csproj"/>
     <ProjectReference Include="..\SystemAudioRecordingSoftware.Core\SystemAudioRecordingSoftware.Core.csproj" />
   </ItemGroup>
 </Project>

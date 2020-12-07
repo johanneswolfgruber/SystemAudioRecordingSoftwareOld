@@ -18,6 +18,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Testing", "Testing", "{5E54
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SystemAudioRecordingSoftware.Core.Tests", "Testing\SystemAudioRecordingSoftware.Core.Tests\SystemAudioRecordingSoftware.Core.Tests.csproj", "{75656CE8-3471-4100-A384-4325CEDD22EC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SystemAudioRecordingSoftware.Common.UI", "SystemAudioRecordingSoftware.Common.UI\SystemAudioRecordingSoftware.Common.UI.csproj", "{B3BD37CF-9039-401D-B233-8CE28C57B03D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +38,10 @@ Global
 		{75656CE8-3471-4100-A384-4325CEDD22EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75656CE8-3471-4100-A384-4325CEDD22EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75656CE8-3471-4100-A384-4325CEDD22EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3BD37CF-9039-401D-B233-8CE28C57B03D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3BD37CF-9039-401D-B233-8CE28C57B03D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3BD37CF-9039-401D-B233-8CE28C57B03D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3BD37CF-9039-401D-B233-8CE28C57B03D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

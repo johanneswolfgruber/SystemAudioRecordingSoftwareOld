@@ -6,6 +6,7 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views="clr-namespace:SystemAudioRecordingSoftware.UI.Views"
+    xmlns:controls="clr-namespace:SystemAudioRecordingSoftware.Common.UI.Controls;assembly=SystemAudioRecordingSoftware.Common.UI"
     Width="1200"
     Height="800"
     MinWidth="600"
@@ -19,7 +20,7 @@
     <views:MainWindowBase.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Button.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/SystemAudioRecordingSoftware.Common.UI;component/Themes/WaveformControl.Theme.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </views:MainWindowBase.Resources>
@@ -75,8 +76,10 @@
             <materialDesign:PackIcon Kind="Fire" />
         </Button>
 
-        <ContentPresenter
-            x:Name="MainContent"
+        <controls:WaveformControl
+            x:Name="WaveformControl"
+            DisplayAudioData="{Binding AudioData}"
+            LengthInSeconds="{Binding LengthInSeconds}"
             Grid.Row="1"
             Grid.Column="0"
             Grid.ColumnSpan="5"

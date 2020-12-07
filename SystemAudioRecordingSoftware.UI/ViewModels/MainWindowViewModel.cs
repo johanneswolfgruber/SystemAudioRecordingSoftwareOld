@@ -5,6 +5,7 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
 using System;
+using System.Collections.Generic;
 using System.Reactive;
 using SystemAudioRecordingSoftware.Core.AudioEngine;
 using SystemAudioRecordingSoftware.Core.Model;
@@ -13,8 +14,9 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
 {
     public class MainWindowViewModel : ReactiveObject
     {
+        private readonly List<float> _audioData = new();
         private readonly IAudioEngineService _engineService;
-        private readonly WaveformViewModel _waveform = new();
+        private int _numberOfSamples;
 
         public MainWindowViewModel(IAudioEngineService? engineService = null)
         {
@@ -33,21 +35,30 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
 
             RecordingsList = new RecordingsListViewModel(_engineService);
             RecordingsList.WhenAnyValue(x => x.SelectedRecording).Subscribe(OnSelectedRecordingChanged);
+
+            AudioData = Array.Empty<float>();
         }
 
         public ReactiveCommand<Unit, Unit> RecordCommand { get; }
         public ReactiveCommand<Unit, Unit> StopCommand { get; }
         public ReactiveCommand<Unit, Unit> SnipCommand { get; }
         public ReactiveCommand<Unit, Unit> BurnCommand { get; }
-        public object WaveformRenderer => _waveform.Content;
         [Reactive] public RecordingsListViewModel RecordingsList { get; set; }
         [Reactive] public bool IsRecording { get; set; }
         [Reactive] public string Title { get; set; } = "System Audio Recording Software";
         [Reactive] public string? FilePath { get; set; }
+        [Reactive] public float[] AudioData { get; set; }
+        [Reactive] public TimeSpan LengthInSeconds { get; set; }
 
         private void OnAudioDataAvailable(AudioDataDto args)
         {
-            _waveform.AddAudioData(args.Buffer, args.TotalNumberOfSingleChannelSamples, args.SampleRate);
+            _audioData.AddRange(args.Buffer);
+            AudioData = _audioData.ToArray();
+            this.RaisePropertyChanged(nameof(AudioData));
+            _numberOfSamples += args.TotalNumberOfSingleChannelSamples;
+            LengthInSeconds = TimeSpan.FromSeconds(((double)_numberOfSamples) / args.SampleRate);
+
+            // _waveform.AddAudioData(args.Buffer, args.TotalNumberOfSingleChannelSamples, args.SampleRate);
         }
 
         private void OnBurn()
@@ -63,7 +74,7 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
         private void OnRecord()
         {
             _engineService.Record();
-            _waveform.Reset();
+            // _waveform.Reset();
         }
 
         private void OnSelectedRecordingChanged(RecordingViewModel? vm)
@@ -75,17 +86,17 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
                 return;
             }
 
-            _waveform.Reset();
+            // _waveform.Reset();
 
             var data = _engineService.GetAudioDisplayData(FilePath);
 
-            _waveform.AddAudioData(data.Buffer, data.TotalNumberOfSingleChannelSamples, data.SampleRate);
+            // _waveform.AddAudioData(data.Buffer, data.TotalNumberOfSingleChannelSamples, data.SampleRate);
         }
 
         private void OnSnip()
         {
             _engineService.SnipRecording();
-            _waveform.AddSnip();
+            // _waveform.AddSnip();
         }
 
         private void OnStop()

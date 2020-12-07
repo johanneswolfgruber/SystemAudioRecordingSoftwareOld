@@ -15,6 +15,7 @@ namespace SystemAudioRecordingSoftware.UI.Views
         {
             InitializeComponent();
             ViewModel = new MainWindowViewModel();
+            DataContext = ViewModel;
 
             this.WhenActivated(disposables =>
             {
@@ -43,10 +44,15 @@ namespace SystemAudioRecordingSoftware.UI.Views
                         view => view.BurnButton)
                     .DisposeWith(disposables);
 
-                this.OneWayBind(ViewModel,
-                        viewModel => viewModel.WaveformRenderer,
-                        view => view.MainContent.Content)
-                    .DisposeWith(disposables);
+                // this.Bind(ViewModel,
+                //         viewModel => viewModel.AudioData,
+                //         view => view.WaveformControl.DisplayAudioData)
+                //     .DisposeWith(disposables);
+                //
+                // this.Bind(ViewModel,
+                //         viewModel => viewModel.LengthInSeconds,
+                //         view => view.WaveformControl.LengthInSeconds)
+                //     .DisposeWith(disposables);
 
                 this.OneWayBind(ViewModel,
                         viewModel => viewModel.RecordingsList,
