@@ -12,36 +12,34 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 {
     internal class PlaybackService : IPlaybackService
     {
-        private readonly Subject<PlaybackState> _playbackStateChanged;
         private readonly Subject<AudioDataDto> _audioDataAvailable;
+        private readonly Subject<PlaybackState> _playbackStateChanged;
+        private IDisposable? _audioDataAvailableDisposable;
         private WaveStream? _fileStream;
         private IWavePlayer _playbackDevice;
         private IDisposable? _playbackStopped;
-        private IDisposable? _audioDataAvailableDisposable;
 
-        public PlaybackService(string filePath)
+        public PlaybackService()
         {
-            _playbackDevice = new WaveOut { DesiredLatency = 200 };
+            _playbackDevice = new WaveOut {DesiredLatency = 200};
             _playbackStateChanged = new Subject<PlaybackState>();
             _audioDataAvailable = new Subject<AudioDataDto>();
-
-            Initialize(filePath);
         }
 
         public bool IsPlaying => _playbackDevice.PlaybackState == PlaybackState.Playing;
         public IObservable<PlaybackState> PlaybackStateChanged => _playbackStateChanged.AsObservable();
-        public IObservable<AudioDataDto> AudioDataAvailable => _audioDataAvailable.AsObservable();
+        public IObservable<AudioDataDto> PlaybackDataAvailable => _audioDataAvailable.AsObservable();
 
         public void Dispose()
         {
-            Stop();
+            StopPlayback();
             CloseFile();
             _playbackDevice.Dispose();
             _playbackStopped?.Dispose();
             _audioDataAvailableDisposable?.Dispose();
         }
 
-        public void Pause()
+        public void PausePlayback()
         {
             _playbackDevice.Pause();
             _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
@@ -63,7 +61,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
         }
 
-        public void Stop()
+        public void StopPlayback()
         {
             _playbackDevice.Stop();
             if (_fileStream == null)
@@ -75,9 +73,9 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
         }
 
-        private void Initialize(string filePath)
+        public void Initialize(string filePath) // TODO: add safeguard if not initialized
         {
-            Stop();
+            StopPlayback();
             CloseFile();
             EnsureDeviceCreated();
             OpenFile(filePath);
@@ -91,7 +89,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         private void CreateDevice()
         {
-            _playbackDevice = new WaveOut { DesiredLatency = 200 };
+            _playbackDevice = new WaveOut {DesiredLatency = 200};
             _playbackStopped = Observable
                 .FromEventPattern<StoppedEventArgs>(_playbackDevice, nameof(_playbackDevice.PlaybackStopped))
                 .Subscribe(_ => OnPlaybackStopped());
@@ -116,7 +114,8 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
                 _fileStream = inputStream;
                 var provider = new SampleProvider(inputStream);
 
-                _audioDataAvailableDisposable = provider.AudioDataAvailable.Subscribe(x => _audioDataAvailable.OnNext(x));
+                _audioDataAvailableDisposable =
+                    provider.AudioDataAvailable.Subscribe(x => _audioDataAvailable.OnNext(x));
 
                 _playbackDevice.Init(provider);
             }

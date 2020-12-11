@@ -15,7 +15,9 @@ namespace SystemAudioRecordingSoftware.Core.Bootstrapping
 
             Locator.CurrentMutable.RegisterLazySingleton(() => new FilePathProvider(), typeof(IFilePathProvider));
             Locator.CurrentMutable.RegisterLazySingleton(() => new RecorderService(), typeof(IRecorderService));
-            Locator.CurrentMutable.RegisterLazySingleton(() => new AudioFileLoaderService(), typeof(IAudioFileLoaderService));
+            Locator.CurrentMutable.RegisterLazySingleton(() => new AudioFileLoaderService(),
+                typeof(IAudioFileLoaderService));
+            Locator.CurrentMutable.RegisterLazySingleton(() => new PlaybackService(), typeof(IPlaybackService));
             Locator.CurrentMutable.RegisterLazySingleton(() => new AudioEngineService(), typeof(IAudioEngineService));
         }
 
@@ -23,7 +25,11 @@ namespace SystemAudioRecordingSoftware.Core.Bootstrapping
         {
             var config = new NLog.Config.LoggingConfiguration();
 
-            var logfile = new NLog.Targets.FileTarget("logfile") { FileName = "${specialfolder:folder=Personal}/SystemAudioRecordingSoftware/system_audio_recording_software.txt" };
+            var logfile = new NLog.Targets.FileTarget("logfile")
+            {
+                FileName =
+                    "${specialfolder:folder=Personal}/SystemAudioRecordingSoftware/system_audio_recording_software.txt"
+            };
             config.AddRule(NLog.LogLevel.Debug, NLog.LogLevel.Fatal, logfile);
             NLog.LogManager.Configuration = config;
 

@@ -10,12 +10,14 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
     {
         bool IsPlaying { get; }
         IObservable<PlaybackState> PlaybackStateChanged { get; }
-        IObservable<AudioDataDto> AudioDataAvailable { get; }
+        IObservable<AudioDataDto> PlaybackDataAvailable { get; }
 
-        void Pause();
+        void Initialize(string filePath);
+
+        void PausePlayback();
 
         void Play();
 
-        void Stop();
+        void StopPlayback();
     }
 }

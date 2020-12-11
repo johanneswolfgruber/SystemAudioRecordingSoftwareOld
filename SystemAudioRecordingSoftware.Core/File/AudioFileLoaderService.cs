@@ -15,13 +15,13 @@ namespace SystemAudioRecordingSoftware.Core.File
             throw new NotImplementedException();
         }
 
-        public AudioData GetAudioDisplayData(string filePath)
+        public AudioDataDto GetAudioDisplayData(string filePath)
         {
             if (!System.IO.File.Exists(filePath))
             {
                 throw new InvalidOperationException($"The file {filePath} does not exist.");
             }
-            
+
             using var reader = new AudioFileReader(filePath);
             float[] buffer = new float[reader.Length / 2];
             reader.Read(buffer, 0, buffer.Length);
@@ -31,8 +31,9 @@ namespace SystemAudioRecordingSoftware.Core.File
             var numberOfSamples = audioData.Length / numberOfChannels;
             var sampleRate = reader.WaveFormat.SampleRate;
             var data = audioData.Where((_, i) => i % (sampleRate / 100 * numberOfChannels) == 0);
+            var totalTime = TimeSpan.FromSeconds((double)numberOfSamples / sampleRate);
 
-            return new AudioData(data, numberOfSamples, sampleRate);
+            return new AudioDataDto(data, totalTime);
         }
     }
 }

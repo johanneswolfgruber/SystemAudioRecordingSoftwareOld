@@ -5,7 +5,10 @@ using SkiaSharp.Views.Desktop;
 using SkiaSharp.Views.WPF;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -26,30 +29,31 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
     [TemplatePart(Name = AddSnipPart, Type = typeof(Button))]
     [TemplatePart(Name = RemoveSnipPart, Type = typeof(Button))]
     [TemplatePart(Name = FollowPlayHeadPart, Type = typeof(Button))]
-    [TemplatePart(Name = LastClickPositionPart, Type = typeof(TextBlock))]
-    public class WaveformControl : Control
+    [TemplatePart(Name = TimeDisplay, Type = typeof(TextBlock))]
+    public class WaveformControl : Control, IDisposable
     {
-        public const string ContentPart = "PART_Content";
-        public const string MainWaveformPart = "PART_MainWaveform";
-        public const string MainLineCanvasPart = "PART_MainLineCanvas";
-        public const string OverviewWaveformPart = "PART_OverviewWaveform";
-        public const string OverviewLineCanvasPart = "PART_OverviewLineCanvas";
-        public const string ButtonsPart = "PART_Buttons";
-        public const string ZoomInPart = "PART_ZoomInButton";
-        public const string ZoomOutPart = "PART_ZoomOutButton";
-        public const string AddSnipPart = "PART_AddSnipButton";
-        public const string RemoveSnipPart = "PART_RemoveSnipButton";
-        public const string FollowPlayHeadPart = "PART_FollowPlayHeadButton";
-        public const string LastClickPositionPart = "PART_LastClickPosition";
-
-        private readonly List<LineContainer> _snipLines = new();
+        private const string ContentPart = "PART_Content";
+        private const string MainWaveformPart = "PART_MainWaveform";
+        private const string MainLineCanvasPart = "PART_MainLineCanvas";
+        private const string OverviewWaveformPart = "PART_OverviewWaveform";
+        private const string OverviewLineCanvasPart = "PART_OverviewLineCanvas";
+        private const string ButtonsPart = "PART_Buttons";
+        private const string ZoomInPart = "PART_ZoomInButton";
+        private const string ZoomOutPart = "PART_ZoomOutButton";
+        private const string AddSnipPart = "PART_AddSnipButton";
+        private const string RemoveSnipPart = "PART_RemoveSnipButton";
+        private const string FollowPlayHeadPart = "PART_FollowPlayHeadButton";
+        private const string TimeDisplay = "PART_TimeDisplay";
+        private readonly List<float> _audioData = new();
 
         // private int _zoomFactor = 10; // TODO: implement zooming
+        private readonly IDisposable _redrawTimer;
+
+        private readonly List<LineContainer> _snipLines = new();
         private Button? _addSnipButton;
         private float[] _audioArray = Array.Empty<float>();
         private TimeSpan _currentTimestamp;
         private ToggleButton? _followPlayHeadButton;
-        private TextBlock? _lastClickPositionTextBlock;
         private TimeSpan _lengthInSeconds;
         private Canvas? _mainLineCanvas;
         private SKElement? _mainWaveform;
@@ -60,9 +64,27 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
         private Button? _removeSnipButton;
         private LineContainer? _selectedLines;
         private bool _shouldFollowWaveform = true;
+        private TextBlock? _timeDisplayTextBlock;
         private double _waveformAudioWidth;
         private Button? _zoomInButton;
         private Button? _zoomOutButton;
+
+        public WaveformControl()
+        {
+            DisplayAudioData = new ObservableCollection<float>();
+            SnipTimeStamps = new ObservableCollection<TimeSpan>();
+
+            _redrawTimer = Observable
+                .Interval(TimeSpan.FromMilliseconds(60))
+                .ObserveOnDispatcher()
+                .Subscribe(_ => InvalidateSkiaVisuals());
+        }
+
+        public void Dispose()
+        {
+            _redrawTimer.Dispose();
+            GC.SuppressFinalize(this);
+        }
 
         public override void OnApplyTemplate()
         {
@@ -78,12 +100,12 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             _addSnipButton = GetTemplateChild(AddSnipPart) as Button;
             _removeSnipButton = GetTemplateChild(RemoveSnipPart) as Button;
             _followPlayHeadButton = GetTemplateChild(FollowPlayHeadPart) as ToggleButton;
-            _lastClickPositionTextBlock = GetTemplateChild(LastClickPositionPart) as TextBlock;
+            _timeDisplayTextBlock = GetTemplateChild(TimeDisplay) as TextBlock;
 
             if (_mainWaveform == null || _mainLineCanvas == null || _overviewWaveform == null ||
                 _overviewLineCanvas == null || _zoomInButton == null || _zoomOutButton == null ||
                 _addSnipButton == null || _removeSnipButton == null || _followPlayHeadButton == null ||
-                _lastClickPositionTextBlock == null)
+                _timeDisplayTextBlock == null)
             {
                 throw new InvalidOperationException("Missing template part");
             }
@@ -125,8 +147,6 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             var start = _shouldFollowWaveform
                 ? _audioArray.Length < width ? 0 : _audioArray.Length - width
                 : (int)Math.Floor(GetMainWaveformStartIndex());
-
-            _waveformAudioWidth = width;
 
             var dataToRender = _audioArray.Length < start + width
                 ? _audioArray
@@ -171,7 +191,6 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             var blockSize = (int)Math.Ceiling((double)_audioArray.Length / width);
 
             var paint = CreatePaint(OverviewWaveformColor, OverviewWaveformStrokeWidth);
-            _overviewAudioWidth = width;
 
             for (var i = 0; i < width; i++)
             {
@@ -232,7 +251,6 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             }
 
             SetOverviewWaveformClickPosition(e.GetPosition(_overviewWaveform));
-            InvalidateSkiaVisuals();
         }
 
         private void OnOverviewLineCanvasMouseMove(object sender, MouseEventArgs e)
@@ -243,7 +261,6 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             }
 
             SetOverviewWaveformClickPosition(e.GetPosition(_overviewWaveform));
-            InvalidateSkiaVisuals();
         }
 
         private void OnFollowPlayHeadClicked(object sender, RoutedEventArgs e)
@@ -260,6 +277,11 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             }
 
             _snipLines.Remove(_selectedLines);
+
+            if (SnipTimeStamps is IList<TimeSpan> snipTimeStamps)
+            {
+                snipTimeStamps.Remove(_selectedLines.Timestamp);
+            }
 
             _mainLineCanvas.Children.Remove(_selectedLines.MainWaveformLine);
             _overviewLineCanvas.Children.Remove(_selectedLines.OverviewWaveformLine);
@@ -286,6 +308,10 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             {
                 _snipLines.Add(lineContainer);
                 SetSelectedLines(_snipLines.Last());
+                if (SnipTimeStamps is IList<TimeSpan> snipTimeStamps)
+                {
+                    snipTimeStamps.Add(lineContainer.Timestamp);
+                }
             }
         }
 
@@ -299,15 +325,117 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             throw new NotImplementedException();
         }
 
-        private static void OnDisplayAudioDataChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private void OnDisplayAudioDataChanged(object? sender, NotifyCollectionChangedEventArgs args)
+        {
+            if (args.NewItems == null)
+            {
+                return;
+            }
+
+            _audioData.AddRange(args.NewItems.OfType<float>());
+            _audioArray = _audioData.ToArray();
+
+            // if (Application.Current != null)
+            // {
+            //     Application.Current.Dispatcher.Invoke(InvalidateSkiaVisuals);
+            // }
+        }
+
+        private static void OnDisplayAudioDataPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (!(d is WaveformControl control))
             {
                 return;
             }
 
-            control._audioArray = (float[])e.NewValue;
-            control.InvalidateSkiaVisuals();
+            if (e.OldValue is INotifyCollectionChanged oldCollection)
+            {
+                oldCollection.CollectionChanged -= control.OnDisplayAudioDataChanged;
+            }
+
+            if (e.NewValue is INotifyCollectionChanged newCollection)
+            {
+                newCollection.CollectionChanged += control.OnDisplayAudioDataChanged;
+            }
+        }
+
+        private void OnSnipTimeStampsChanged(object? sender, NotifyCollectionChangedEventArgs args)
+        {
+            if (Application.Current == null)
+            {
+                return;
+            }
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var newTimeStamps = args.NewItems?.OfType<TimeSpan>();
+                var oldTimeStamps = args.OldItems?.OfType<TimeSpan>();
+
+                if (newTimeStamps == null)
+                {
+                    return;
+                }
+
+                foreach (var timeStamp in newTimeStamps)
+                {
+                    var lineContainer = AddSnipToCanvas(timeStamp);
+                    if (lineContainer != null)
+                    {
+                        _snipLines.Add(lineContainer);
+                        SetSelectedLines(_snipLines.Last());
+                    }
+                }
+
+                if (oldTimeStamps == null)
+                {
+                    return;
+                }
+
+                foreach (var timeStamp in oldTimeStamps)
+                {
+                    if (_snipLines.Count <= 0 || _mainLineCanvas == null || _overviewLineCanvas == null)
+                    {
+                        return;
+                    }
+
+                    var affectedLines = _snipLines.Where(x => x.Timestamp == timeStamp);
+
+                    foreach (var line in affectedLines)
+                    {
+                        _snipLines.Remove(line);
+
+                        _mainLineCanvas.Children.Remove(line.MainWaveformLine);
+                        _overviewLineCanvas.Children.Remove(line.OverviewWaveformLine);
+                    }
+
+                    if (_snipLines.Count > 0)
+                    {
+                        SetSelectedLines(_snipLines.Last());
+                    }
+                    else
+                    {
+                        _selectedLines = null;
+                    }
+                }
+            });
+        }
+
+        private static void OnSnipTimeStampsPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (!(d is WaveformControl control))
+            {
+                return;
+            }
+
+            if (e.OldValue is INotifyCollectionChanged oldCollection)
+            {
+                oldCollection.CollectionChanged -= control.OnSnipTimeStampsChanged;
+            }
+
+            if (e.NewValue is INotifyCollectionChanged newCollection)
+            {
+                newCollection.CollectionChanged += control.OnSnipTimeStampsChanged;
+            }
         }
 
         private static void OnLengthInSecondsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -318,7 +446,11 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             }
 
             control._lengthInSeconds = (TimeSpan)e.NewValue;
-            control.InvalidateSkiaVisuals();
+            if (control._timeDisplayTextBlock != null)
+            {
+                control._timeDisplayTextBlock.Text = $"TimeStamp: {control._currentTimestamp.TotalSeconds}s, " +
+                                                     $"Length: {control._lengthInSeconds:mm\\:ss\\.f}s";
+            }
         }
 
         #endregion
@@ -342,12 +474,6 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
             var maxTimeStamp = _lengthInSeconds - WidthToTimeSpan(_waveformAudioWidth);
             _currentTimestamp = TimeSpan.FromSeconds(
                 Math.Min(ToTimestampFromOverviewWaveformX(clickPosition.X).TotalSeconds, maxTimeStamp.TotalSeconds));
-
-            if (_lastClickPositionTextBlock != null)
-            {
-                _lastClickPositionTextBlock.Text =
-                    $"X: {clickPosition.X}, Y: {clickPosition.Y}, timestamp: {_currentTimestamp.TotalSeconds}s";
-            }
         }
 
         private void AddMarker(double x)
@@ -562,13 +688,23 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
         }
 
         public static readonly DependencyProperty DisplayAudioDataProperty = DependencyProperty.Register(
-            nameof(DisplayAudioData), typeof(float[]), typeof(WaveformControl),
-            new PropertyMetadata(default(float[]), OnDisplayAudioDataChanged));
+            nameof(DisplayAudioData), typeof(IEnumerable<float>), typeof(WaveformControl),
+            new PropertyMetadata(default(IEnumerable<float>), OnDisplayAudioDataPropertyChanged));
 
-        public float[] DisplayAudioData
+        public IEnumerable<float> DisplayAudioData
         {
-            get { return (float[])GetValue(DisplayAudioDataProperty); }
+            get { return (IEnumerable<float>)GetValue(DisplayAudioDataProperty); }
             set { SetValue(DisplayAudioDataProperty, value); }
+        }
+
+        public static readonly DependencyProperty SnipTimeStampsProperty = DependencyProperty.Register(
+            nameof(SnipTimeStamps), typeof(IEnumerable<TimeSpan>), typeof(WaveformControl),
+            new PropertyMetadata(default(IEnumerable<TimeSpan>), OnSnipTimeStampsPropertyChanged));
+
+        public IEnumerable<TimeSpan> SnipTimeStamps
+        {
+            get { return (IEnumerable<TimeSpan>)GetValue(SnipTimeStampsProperty); }
+            set { SetValue(SnipTimeStampsProperty, value); }
         }
 
         public static readonly DependencyProperty MarkerLineBrushProperty = DependencyProperty.Register(

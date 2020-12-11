@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <PackageReference Include="SkiaSharp.Views.WPF" Version="2.80.2"/>
-        <PackageReference Include="MaterialDesignThemes" Version="3.2.0"/>
+        <PackageReference Include="MaterialDesignThemes" Version="4.0.0-ci2273"/>
+        <PackageReference Include="System.Reactive" Version="4.4.1"/>
     </ItemGroup>
 </Project>

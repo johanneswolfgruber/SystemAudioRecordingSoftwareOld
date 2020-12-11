@@ -22,7 +22,6 @@
             <Border
                 x:Name="MainBorder"
                 Grid.RowSpan="3"
-                Margin="-2"
                 Width="{TemplateBinding Width}"
                 Height="{TemplateBinding Height}"
                 BorderBrush="{TemplateBinding BorderBrush}"
@@ -49,7 +48,6 @@
                 x:Name="OverviewBorder"
                 Grid.Row="2"
                 Grid.Column="0"
-                Margin="-1"
                 BorderBrush="{TemplateBinding OverviewBorderBrush}"
                 BorderThickness="{TemplateBinding OverviewBorderThickness}"
                 Width="{TemplateBinding Width}"
@@ -128,7 +126,7 @@
                     <materialDesign:PackIcon Kind="LastPage" />
                 </ToggleButton>
                 <TextBlock
-                    x:Name="PART_LastClickPosition" 
+                    x:Name="PART_TimeDisplay" 
                     VerticalAlignment="Center"
                     Margin="{TemplateBinding ButtonMargin}" />
             </StackPanel>
@@ -138,19 +136,19 @@
     <Style TargetType="{x:Type controls:WaveformControl}">
         <Setter Property="Template" Value="{StaticResource WaveformControlTemplate}"/>
         <Setter Property="OverviewHeight" Value="100" />
-        <Setter Property="BorderBrush" Value="Gray" />
-        <Setter Property="BorderThickness" Value="2" />
-        <Setter Property="OverviewBorderBrush" Value="Gray" />
-        <Setter Property="OverviewBorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignTextBoxBorder}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="OverviewBorderBrush" Value="{DynamicResource MaterialDesignTextBoxBorder}" />
+        <Setter Property="OverviewBorderThickness" Value="0,2,0,0" />
         <Setter Property="ButtonMargin" Value="2" />
         <Setter Property="MainWaveformColor" Value="{x:Static skiaSharp:SKColors.White}" />
         <Setter Property="MainWaveformStrokeWidth" Value="0.5" />
         <Setter Property="OverviewWaveformColor" Value="{x:Static skiaSharp:SKColors.White}" />
         <Setter Property="OverviewWaveformStrokeWidth" Value="0.5" />
         <Setter Property="LineThickness" Value="2" />
-        <Setter Property="MarkerLineBrush" Value="Blue" />
-        <Setter Property="SelectedLineBrush" Value="Aqua" />
-        <Setter Property="LineBrush" Value="Beige" />
+        <Setter Property="MarkerLineBrush" Value="{DynamicResource MaterialDesignTextBoxBorder}" />
+        <Setter Property="SelectedLineBrush" Value="{DynamicResource PrimaryHueLightBrush}" />
+        <Setter Property="LineBrush" Value="{DynamicResource PrimaryHueDarkBrush}" />
     </Style>
     
 </ResourceDictionary>

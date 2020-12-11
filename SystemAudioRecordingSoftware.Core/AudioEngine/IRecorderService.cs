@@ -12,13 +12,13 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         bool IsRecording { get; }
         IObservable<CaptureState> CaptureStateChanged { get; }
         IObservable<StoppedEventArgs> RecordingStopped { get; }
-        IObservable<AudioDataDto> AudioDataAvailable { get; }
+        IObservable<AudioDataDto> RecorderDataAvailable { get; }
         IObservable<Recording> NewRecordingCreated { get; }
+
+        TimeSpan SnipRecording();
 
         void StartRecording();
 
         void StopRecording();
-        
-        void SnipRecording();
     }
 }

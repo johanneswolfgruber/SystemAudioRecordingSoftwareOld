@@ -1,25 +1,23 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 
+using System;
 using System.Collections.Generic;
 
 namespace SystemAudioRecordingSoftware.Core.Model
 {
     public sealed record AudioDataDto(
         IEnumerable<float> Buffer,
-        int TotalNumberOfSingleChannelSamples,
-        int SampleRate);
-    
+        TimeSpan TotalTime);
+
     public sealed class AudioData
     {
-        public AudioData(IEnumerable<float> buffer, int totalNumberOfSingleChannelSamples, int sampleRate)
+        public AudioData(IEnumerable<float> buffer, TimeSpan totalTime)
         {
             Buffer = buffer;
-            TotalNumberOfSingleChannelSamples = totalNumberOfSingleChannelSamples;
-            SampleRate = sampleRate;
+            TotalTime = totalTime;
         }
 
         public IEnumerable<float> Buffer { get; }
-        public int TotalNumberOfSingleChannelSamples { get; }
-        public int SampleRate { get; }
+        public TimeSpan TotalTime { get; }
     }
 }

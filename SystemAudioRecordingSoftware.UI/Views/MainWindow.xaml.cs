@@ -24,6 +24,11 @@ namespace SystemAudioRecordingSoftware.UI.Views
                         view => view.Title)
                     .DisposeWith(disposables);
 
+                this.Bind(ViewModel,
+                        viewModel => viewModel.Title,
+                        view => view.TitleText.Text)
+                    .DisposeWith(disposables);
+
                 this.BindCommand(ViewModel,
                         viewModel => viewModel.RecordCommand,
                         view => view.RecordButton)

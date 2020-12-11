@@ -45,7 +45,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         public bool IsRecording => _capture.CaptureState != CaptureState.Stopped;
         public IObservable<CaptureState> CaptureStateChanged => _captureStateChanged.AsObservable();
         public IObservable<StoppedEventArgs> RecordingStopped => _recordingStopped.AsObservable();
-        public IObservable<AudioDataDto> AudioDataAvailable => _audioDataAvailable.AsObservable();
+        public IObservable<AudioDataDto> RecorderDataAvailable => _audioDataAvailable.AsObservable();
         public IObservable<Recording> NewRecordingCreated => _newRecordingCreated.AsObservable();
 
         public void StartRecording()
@@ -61,7 +61,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             _captureStateChanged.OnNext(_capture.CaptureState);
         }
 
-        public void SnipRecording()
+        public TimeSpan SnipRecording()
         {
             if (_writer == null)
             {
@@ -70,6 +70,8 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
             var time = _writer.TotalTime;
             _snipsList.Add(time);
+
+            return time;
         }
 
         private List<Track> GetTracksFromSnips(Guid recordingId, TimeSpan writerTotalTime)

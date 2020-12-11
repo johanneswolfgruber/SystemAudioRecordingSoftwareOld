@@ -9,6 +9,6 @@ namespace SystemAudioRecordingSoftware.Core.File
     {
         IEnumerable<float> GetAudioData(string filePath);
 
-        AudioData GetAudioDisplayData(string filePath);
+        AudioDataDto GetAudioDisplayData(string filePath);
     }
 }

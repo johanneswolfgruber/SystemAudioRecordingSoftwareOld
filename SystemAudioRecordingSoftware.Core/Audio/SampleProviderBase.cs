@@ -45,8 +45,8 @@ namespace SystemAudioRecordingSoftware.Core.Audio
                 }
             }
 
-            _audioDataAvailable
-                .OnNext(new AudioDataDto(audioData, numSamples / WaveFormat.Channels, WaveFormat.SampleRate));
+            var totalTime = TimeSpan.FromSeconds(((double)numSamples / WaveFormat.Channels) / WaveFormat.SampleRate);
+            _audioDataAvailable.OnNext(new AudioDataDto(audioData, totalTime));
         }
 
         private void Reset()
