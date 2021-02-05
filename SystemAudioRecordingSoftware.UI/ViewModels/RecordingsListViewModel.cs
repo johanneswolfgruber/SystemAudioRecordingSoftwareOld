@@ -1,11 +1,10 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 
 using DynamicData;
-using DynamicData.Binding;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 using Splat;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -17,31 +16,29 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
     {
         private readonly IAudioEngineService _engineService;
         private readonly ReadOnlyObservableCollection<RecordingViewModel> _recordings;
-        private readonly ObservableCollection<RecordingViewModel> _selectedRecordings = new();
-        private readonly ObservableCollection<TrackViewModel> _selectedTracks = new();
 
         public RecordingsListViewModel(IAudioEngineService? engineService = null)
         {
             _engineService = engineService ?? Locator.Current.GetService<IAudioEngineService>();
 
             _engineService.RecordingsChanged()
-                .Transform(r => new RecordingViewModel(r))
-                .ObserveOn(RxApp.MainThreadScheduler)
+                .ObserveOnDispatcher()
+                .Transform(r => new RecordingViewModel(r, OnSelectedTrackChanged))
                 .Bind(out _recordings)
                 .Subscribe();
 
-            var isRecordingSelected = _selectedRecordings
-                .ToObservableChangeSet(x => x)
-                .ToCollection()
-                .Select(x => x.Count > 0);
+            var isRecordingSelected = this.WhenAnyValue<RecordingsListViewModel, bool, RecordingViewModel?>(
+                x => x.SelectedRecording, r => r != null);
 
-            var isTrackSelected = _selectedTracks
-                .ToObservableChangeSet(x => x)
-                .ToCollection()
-                .Select(x => x.Count > 0);
+            var isTrackSelected =
+                this.WhenAnyValue<RecordingsListViewModel, bool, RecordingViewModel?>(x => x.SelectedRecording,
+                    r => r?.SelectedTrack != null);
 
             var canExportOrDelete = isRecordingSelected.Concat(isTrackSelected);
 
+            PlayCommand = ReactiveCommand.Create(OnPlay);
+            PauseCommand = ReactiveCommand.Create(OnPause);
+            StopCommand = ReactiveCommand.Create(OnStop);
             ImportCommand = ReactiveCommand.Create(OnImport);
             ExportCommand = ReactiveCommand.Create(OnExport, canExportOrDelete);
             DeleteCommand = ReactiveCommand.Create(OnDelete, canExportOrDelete);
@@ -49,33 +46,34 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
 
         public ReadOnlyObservableCollection<RecordingViewModel> Recordings => _recordings;
 
+        public ReactiveCommand<Unit, Unit> PlayCommand { get; }
+
+        public ReactiveCommand<Unit, Unit> PauseCommand { get; }
+
+        public ReactiveCommand<Unit, Unit> StopCommand { get; }
+
         public ReactiveCommand<Unit, Unit> ImportCommand { get; }
+
         public ReactiveCommand<Unit, Unit> ExportCommand { get; }
+
         public ReactiveCommand<Unit, Unit> DeleteCommand { get; }
 
-        public void OnSelectedRecordingsChanged(IEnumerable<RecordingViewModel> selectedRecordings)
-        {
-            _selectedRecordings.Clear();
-            _selectedRecordings.AddRange(selectedRecordings);
-        }
-
-        public void OnSelectedTracksChanged(IEnumerable<TrackViewModel> selectedTracks)
-        {
-            _selectedTracks.Clear();
-            _selectedTracks.AddRange(selectedTracks);
-        }
+        [Reactive] public RecordingViewModel? SelectedRecording { get; set; }
 
         private void OnDelete()
         {
-            if (_selectedRecordings.Count <= 0)
+            if (SelectedRecording == null)
             {
                 return;
             }
 
-            foreach (var recording in _selectedRecordings)
+            if (SelectedRecording.SelectedTrack != null)
             {
-                _engineService.RemoveRecording(recording.Id);
+                _engineService.RemoveTrack(SelectedRecording.Id, SelectedRecording.SelectedTrack.Id);
+                return;
             }
+
+            _engineService.RemoveRecording(SelectedRecording.Id);
         }
 
         private void OnExport()
@@ -86,6 +84,31 @@ namespace SystemAudioRecordingSoftware.UI.ViewModels
         private void OnImport()
         {
             // TODO: implement
+        }
+
+        private void OnPause()
+        {
+            _engineService.PausePlayback();
+        }
+
+        private void OnPlay()
+        {
+            _engineService.Play();
+        }
+
+        private void OnSelectedTrackChanged(RecordingViewModel vm)
+        {
+            if (vm.SelectedTrack == null)
+            {
+                return;
+            }
+
+            SelectedRecording = vm;
+        }
+
+        private void OnStop()
+        {
+            _engineService.StopPlayback();
         }
     }
 }

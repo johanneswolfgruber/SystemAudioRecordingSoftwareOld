@@ -2,7 +2,6 @@
 
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
-using Splat;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,7 +9,6 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using SystemAudioRecordingSoftware.Core.Audio;
-using SystemAudioRecordingSoftware.Core.File;
 using SystemAudioRecordingSoftware.Core.Model;
 
 namespace SystemAudioRecordingSoftware.Core.AudioEngine
@@ -19,19 +17,17 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
     {
         private readonly Subject<AudioDataDto> _audioDataAvailable;
         private readonly Subject<CaptureState> _captureStateChanged;
-        private readonly IFilePathProvider _filePathProvider;
         private readonly Subject<Recording> _newRecordingCreated;
         private readonly Subject<StoppedEventArgs> _recordingStopped;
         private readonly List<TimeSpan> _snipsList;
         private IDisposable? _audioDataAvailableDisposable;
         private WasapiLoopbackCapture _capture;
+        private Recording? _currentRecording;
         private WaveInSampleProvider _sampleProvider;
         private WaveFileWriter? _writer;
 
-        public RecorderService(IFilePathProvider? filePathProvider = null)
+        public RecorderService()
         {
-            _filePathProvider = filePathProvider ?? Locator.Current.GetService<IFilePathProvider>();
-
             _captureStateChanged = new Subject<CaptureState>();
             _audioDataAvailable = new Subject<AudioDataDto>();
             _recordingStopped = new Subject<StoppedEventArgs>();
@@ -48,11 +44,13 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         public IObservable<AudioDataDto> RecorderDataAvailable => _audioDataAvailable.AsObservable();
         public IObservable<Recording> NewRecordingCreated => _newRecordingCreated.AsObservable();
 
-        public void StartRecording()
+        public Guid StartRecording()
         {
             InitializeRecordingEngine();
             _capture.StartRecording();
             _captureStateChanged.OnNext(_capture.CaptureState);
+
+            return _currentRecording!.Id;
         }
 
         public void StopRecording()
@@ -74,30 +72,40 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             return time;
         }
 
+        public void SnipRecording(Guid? _, TimeSpan timeStamp)
+        {
+            _snipsList.Add(timeStamp);
+        }
+
         private List<Track> GetTracksFromSnips(Guid recordingId, TimeSpan writerTotalTime)
         {
             var previousSnip = TimeSpan.Zero;
             var tracks = _snipsList
+                .OrderBy(x => x)
                 .Select((t, i) =>
                 {
                     var time = t - previousSnip;
                     previousSnip = t;
-                    return new Track(recordingId, $"Track {i + 1}", string.Empty, time);
+                    return new Track(Guid.NewGuid(), recordingId, $"Track {i + 1}", string.Empty, previousSnip, time);
                 })
                 .ToList();
 
-            tracks.Add(
-                new Track(recordingId, $"Track {tracks.Count + 1}", string.Empty, writerTotalTime - previousSnip));
+            tracks.Add(new Track(Guid.NewGuid(), recordingId, $"Track {tracks.Count + 1}", string.Empty, previousSnip,
+                writerTotalTime - previousSnip));
 
             return tracks;
         }
 
         private void InitializeRecordingEngine()
         {
-            _filePathProvider.CreateUniqueFilePath();
             _capture = new WasapiLoopbackCapture();
+
+            var id = Guid.NewGuid();
+            var path = Path.Combine(Path.GetTempPath(), id + ".wav");
+            _currentRecording = new Recording(id, string.Empty, new List<Track>(), TimeSpan.Zero, path);
+
             _sampleProvider = new WaveInSampleProvider(_capture.WaveFormat);
-            _writer = new WaveFileWriter(_filePathProvider.CurrentRecordingFile, _capture.WaveFormat);
+            _writer = new WaveFileWriter(_currentRecording.FilePath, _capture.WaveFormat);
 
             _capture.DataAvailable += OnDataAvailable;
             _capture.RecordingStopped += OnRecordingStopped;
@@ -123,13 +131,14 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
                 throw new InvalidOperationException("The WaveFileWriter is not set");
             }
 
-            var recordingId = Guid.Parse(Path.GetFileNameWithoutExtension(_filePathProvider.CurrentRecordingFile));
-            var tracks = GetTracksFromSnips(recordingId, _writer.TotalTime);
-            var recording = new Recording(recordingId,
-                string.Empty,
-                tracks,
-                _filePathProvider.CurrentRecordingFile,
-                _writer.TotalTime);
+            if (_currentRecording == null)
+            {
+                throw new ArgumentException("Recording cannot be null");
+            }
+
+            var tracks = GetTracksFromSnips(_currentRecording.Id, _writer.TotalTime);
+
+            var recording = _currentRecording with {Tracks = tracks};
 
             _snipsList.Clear();
 

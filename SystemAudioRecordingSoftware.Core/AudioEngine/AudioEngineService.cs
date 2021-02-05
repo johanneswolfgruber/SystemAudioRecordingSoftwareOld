@@ -24,9 +24,11 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         private readonly IRecorderService _recorderService;
         private readonly SourceCache<Recording, Guid> _recordings;
         private readonly IDisposable _recordingStoppedDisposable;
-        private string _currentPlayBackFilePath;
+        private Recording? _currentRecording;
 
-        public AudioEngineService(IRecorderService? recorderService = null, IPlaybackService? playbackService = null,
+        public AudioEngineService(
+            IRecorderService? recorderService = null,
+            IPlaybackService? playbackService = null,
             IAudioFileLoaderService? audioFileLoaderService = null)
         {
             _recorderService = recorderService ?? Locator.Current.GetService<IRecorderService>();
@@ -35,7 +37,6 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
             _audioDataAvailable = new Subject<AudioDataDto>();
             _recordings = new SourceCache<Recording, Guid>(r => r.Id);
-            _currentPlayBackFilePath = string.Empty;
 
             _audioDataAvailableDisposable = RecorderDataAvailable
                 .Concat(PlaybackDataAvailable)
@@ -66,9 +67,9 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         public IObservable<Recording> NewRecordingCreated => _recorderService.NewRecordingCreated;
 
-        public void StartRecording()
+        public Guid StartRecording()
         {
-            _recorderService.StartRecording();
+            return _recorderService.StartRecording();
         }
 
         public void StopRecording()
@@ -79,6 +80,44 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         public TimeSpan SnipRecording()
         {
             return _recorderService.SnipRecording();
+        }
+
+        public void SnipRecording(Guid? recordingId, TimeSpan timeStamp)
+        {
+            if (IsRecording)
+            {
+                _recorderService.SnipRecording(null, timeStamp);
+                return;
+            }
+
+            if (recordingId == null)
+            {
+                throw new ArgumentException("RecordingId cannot be null");
+            }
+
+            var recordingResult = _recordings.Lookup(recordingId.Value);
+            if (!recordingResult.HasValue)
+            {
+                throw new InvalidOperationException("Recording does not exist");
+            }
+
+            var recording = recordingResult.Value;
+            recording.Tracks.Add(new Track(Guid.NewGuid(), recording.Id, string.Empty, string.Empty, timeStamp,
+                TimeSpan.Zero));
+            var previousTimeStamp = TimeSpan.Zero;
+            var tracks = recording.Tracks
+                .OrderBy(t => t.Start)
+                .Select((t, i) =>
+                {
+                    var length = t.Start - previousTimeStamp;
+                    previousTimeStamp = t.Start;
+                    return t with {Name = $"Track {i + 1}", Start = previousTimeStamp, Length = length};
+                })
+                .ToList();
+
+            var newRecording = recording with {Tracks = tracks};
+
+            _recordings.Edit(x => x.AddOrUpdate(newRecording, recording.Id));
         }
 
         public void Initialize(string filePath)
@@ -101,34 +140,37 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             _playbackService.StopPlayback();
         }
 
-        // public void Play(string filePath)
-        // {
-        //     if (_currentPlayBackFilePath != filePath || _playbackService == null)
-        //     {
-        //         _currentPlayBackFilePath = filePath;
-        //         _playbackService = new PlaybackService(filePath);
-        //         _playbackService
-        //             .PlaybackDataAvailable
-        //             .Subscribe(x => _audioDataAvailable.OnNext(x));
-        //         _playbackService
-        //             .PlaybackStateChanged
-        //             .Subscribe(x => _playBackStateChanged.OnNext(x));
-        //     }
-        //
-        //     _playbackService.Play();
-        // }
-
         public IObservable<IChangeSet<RecordingDto, Guid>> RecordingsChanged() =>
             _recordings.Connect().Transform(r => new RecordingDto(
                 r.Id,
                 $"Recording {_recordings.Count}",
-                r.Tracks.Select(t => new TrackDto(t.RecordingId, t.Name, t.FilePath, t.Length)).ToList(),
-                r.FilePath,
-                r.Length));
+                r.Tracks.Select(t => new TrackDto(t.Id, t.RecordingId, t.Name, t.FilePath, t.Start, t.Length)).ToList(),
+                r.Length,
+                r.FilePath));
 
         public void RemoveRecording(Guid id)
         {
             _recordings.Remove(id);
+        }
+
+        public void RemoveTrack(Guid recordingId, Guid trackId)
+        {
+            var recordingResult = _recordings.Lookup(recordingId);
+            if (!recordingResult.HasValue)
+            {
+                throw new InvalidOperationException("Recording does not exist");
+            }
+
+            var recording = recordingResult.Value;
+            var track = recording.Tracks.FirstOrDefault(t => t.Id == trackId);
+
+            if (track == null)
+            {
+                throw new InvalidOperationException("Recording does not contain this track");
+            }
+
+            recording.Tracks.Remove(track);
+            _recordings.Edit(x => x.AddOrUpdate(recording, recording.Id));
         }
 
         public IEnumerable<float> GetAudioData(string filePath)
@@ -152,12 +194,19 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         private void OnNewRecordingCreated(Recording recording)
         {
+            _currentRecording = recording;
             _recordings.AddOrUpdate(recording);
+            _playbackService.Initialize(_currentRecording.FilePath);
         }
 
         private void OnRecordingStopped()
         {
-            //_playbackService.Initialize(_filePathProvider.CurrentRecordingFile);
+            if (_currentRecording == null)
+            {
+                return;
+            }
+
+            _playbackService.Initialize(_currentRecording.FilePath);
         }
     }
 }

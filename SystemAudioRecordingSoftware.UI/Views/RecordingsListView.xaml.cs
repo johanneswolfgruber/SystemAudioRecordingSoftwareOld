@@ -2,9 +2,7 @@
 
 using ReactiveUI;
 using System;
-using System.Linq;
 using System.Reactive.Disposables;
-using System.Windows.Controls;
 using SystemAudioRecordingSoftware.UI.ViewModels;
 
 namespace SystemAudioRecordingSoftware.UI.Views
@@ -46,27 +44,12 @@ namespace SystemAudioRecordingSoftware.UI.Views
                         viewModel => viewModel.Recordings,
                         view => view.RecordingsList.ItemsSource)
                     .DisposeWith(disposables);
+
+                this.Bind(ViewModel,
+                        viewModel => viewModel.SelectedRecording,
+                        view => view.RecordingsList.SelectedItem)
+                    .DisposeWith(disposables);
             });
-        }
-
-        private void SelectedRecordingsChanged(object sender, SelectionChangedEventArgs args)
-        {
-            if (!(sender is ListView listView))
-            {
-                return;
-            }
-
-            ViewModel?.OnSelectedRecordingsChanged(listView.SelectedItems.OfType<RecordingViewModel>());
-        }
-
-        private void SelectedTracksChanged(object sender, SelectionChangedEventArgs args)
-        {
-            if (!(sender is ListView listView))
-            {
-                return;
-            }
-
-            ViewModel?.OnSelectedTracksChanged(listView.SelectedItems.OfType<TrackViewModel>());
         }
     }
 

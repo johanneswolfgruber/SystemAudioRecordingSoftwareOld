@@ -27,8 +27,7 @@
             VerticalScrollBarVisibility="Visible">
             <ListView
                 x:Name="RecordingsList"
-                Width="332"
-                SelectionChanged="SelectedRecordingsChanged">
+                Width="332">
                 <ListView.ItemTemplate>
                     <DataTemplate DataType="{x:Type viewmodel:RecordingViewModel}">
                         <materialDesign:Card Margin="8" materialDesign:ShadowAssist.ShadowDepth="Depth2">
@@ -43,7 +42,7 @@
                                 <ListView
                                     HorizontalAlignment="Stretch"
                                     ItemsSource="{Binding Tracks}"
-                                    SelectionChanged="SelectedTracksChanged">
+                                    SelectedItem="{Binding SelectedTrack}">
                                     <ListView.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel

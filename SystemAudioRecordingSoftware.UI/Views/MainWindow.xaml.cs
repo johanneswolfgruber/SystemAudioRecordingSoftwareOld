@@ -49,16 +49,6 @@ namespace SystemAudioRecordingSoftware.UI.Views
                         view => view.BurnButton)
                     .DisposeWith(disposables);
 
-                // this.Bind(ViewModel,
-                //         viewModel => viewModel.AudioData,
-                //         view => view.WaveformControl.DisplayAudioData)
-                //     .DisposeWith(disposables);
-                //
-                // this.Bind(ViewModel,
-                //         viewModel => viewModel.LengthInSeconds,
-                //         view => view.WaveformControl.LengthInSeconds)
-                //     .DisposeWith(disposables);
-
                 this.OneWayBind(ViewModel,
                         viewModel => viewModel.RecordingsList,
                         view => view.RecordingsList.ViewModel)

@@ -14,7 +14,6 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private readonly Subject<AudioDataDto> _audioDataAvailable;
         private int _count;
         private float _maxValue;
-        private float _minValue;
 
         public SampleProviderBase(WaveFormat waveFormat)
         {
@@ -52,7 +51,7 @@ namespace SystemAudioRecordingSoftware.Core.Audio
         private void Reset()
         {
             _count = 0;
-            _minValue = _maxValue = 0;
+            _maxValue = 0;
         }
     }
 }

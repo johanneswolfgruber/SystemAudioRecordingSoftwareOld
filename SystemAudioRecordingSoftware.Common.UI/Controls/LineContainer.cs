@@ -1,6 +1,7 @@
 ﻿// (c) Johannes Wolfgruber, 2020
 
 using System;
+using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -14,18 +15,29 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
         OverviewWaveformLine
     }
 
-    internal sealed class LineContainer
+    internal sealed class LineContainer : IDisposable
     {
+        private readonly IDisposable _mainWaveformMouseEnter;
+        private readonly IDisposable _mainWaveformMouseLeave;
+
         public LineContainer(TimeSpan timestamp, Line mainWaveformLine, Line overviewWaveformLine)
         {
             Timestamp = timestamp;
             MainWaveformLine = mainWaveformLine;
             OverviewWaveformLine = overviewWaveformLine;
 
-            MainWaveformLine.MouseEnter += (_, _) => Mouse.OverrideCursor = Cursors.SizeWE;
-            MainWaveformLine.MouseLeave += (_, _) => Mouse.OverrideCursor = Cursors.Arrow;
-            OverviewWaveformLine.MouseEnter += (_, _) => Mouse.OverrideCursor = Cursors.Hand;
-            OverviewWaveformLine.MouseLeave += (_, _) => Mouse.OverrideCursor = Cursors.Arrow;
+            _mainWaveformMouseEnter = MainWaveformLine
+                .Events()
+                .MouseEnter
+                .ObserveOnDispatcher()
+                .Subscribe(_ => Mouse.OverrideCursor = Cursors.SizeWE);
+
+            _mainWaveformMouseLeave = MainWaveformLine
+                .Events()
+                .MouseLeave
+                .Throttle(TimeSpan.FromMilliseconds(100))
+                .ObserveOnDispatcher()
+                .Subscribe(_ => Mouse.OverrideCursor = Cursors.Arrow);
         }
 
         public LineContainer(TimeSpan timestamp)
@@ -38,6 +50,12 @@ namespace SystemAudioRecordingSoftware.Common.UI.Controls
         public Line MainWaveformLine { get; }
 
         public Line OverviewWaveformLine { get; }
+
+        public void Dispose()
+        {
+            _mainWaveformMouseEnter.Dispose();
+            _mainWaveformMouseLeave.Dispose();
+        }
 
         public Line GetLine(LineType lineType)
         {

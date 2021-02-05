@@ -14,5 +14,7 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         IObservable<IChangeSet<RecordingDto, Guid>> RecordingsChanged();
 
         void RemoveRecording(Guid id);
+
+        void RemoveTrack(Guid recordingId, Guid trackId);
     }
 }

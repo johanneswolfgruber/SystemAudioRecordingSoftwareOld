@@ -17,7 +17,9 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         TimeSpan SnipRecording();
 
-        void StartRecording();
+        void SnipRecording(Guid? recordingId, TimeSpan timeStamp);
+
+        Guid StartRecording();
 
         void StopRecording();
     }

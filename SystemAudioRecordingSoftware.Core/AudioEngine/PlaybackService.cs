@@ -15,9 +15,8 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         private readonly Subject<AudioDataDto> _audioDataAvailable;
         private readonly Subject<PlaybackState> _playbackStateChanged;
         private IDisposable? _audioDataAvailableDisposable;
-        private WaveStream? _fileStream;
         private IWavePlayer _playbackDevice;
-        private IDisposable? _playbackStopped;
+        private AudioFileReader? _reader;
 
         public PlaybackService()
         {
@@ -35,7 +34,6 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
             StopPlayback();
             CloseFile();
             _playbackDevice.Dispose();
-            _playbackStopped?.Dispose();
             _audioDataAvailableDisposable?.Dispose();
         }
 
@@ -47,14 +45,14 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
 
         public void Play()
         {
-            if (_fileStream == null || _playbackDevice.PlaybackState == PlaybackState.Playing)
+            if (_reader == null || _playbackDevice.PlaybackState == PlaybackState.Playing)
             {
                 return;
             }
 
-            if (_fileStream.Position == _fileStream.Length)
+            if (_reader.Position == _reader.Length)
             {
-                _fileStream.Position = 0;
+                _reader.Position = 0;
             }
 
             _playbackDevice.Play();
@@ -64,12 +62,12 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         public void StopPlayback()
         {
             _playbackDevice.Stop();
-            if (_fileStream == null)
+            if (_reader == null)
             {
                 return;
             }
 
-            _fileStream.Position = 0;
+            _reader.Position = 0;
             _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
         }
 
@@ -77,42 +75,42 @@ namespace SystemAudioRecordingSoftware.Core.AudioEngine
         {
             StopPlayback();
             CloseFile();
-            EnsureDeviceCreated();
+            CreateDevice();
             OpenFile(filePath);
         }
 
         private void CloseFile()
         {
-            _fileStream?.Dispose();
-            _fileStream = null;
+            _reader?.Dispose();
+            _reader = null;
         }
 
         private void CreateDevice()
         {
-            _playbackDevice = new WaveOut {DesiredLatency = 200};
-            _playbackStopped = Observable
-                .FromEventPattern<StoppedEventArgs>(_playbackDevice, nameof(_playbackDevice.PlaybackStopped))
-                .Subscribe(_ => OnPlaybackStopped());
+            _playbackDevice = new WaveOutEvent {DesiredLatency = 200};
+
+            _playbackDevice.PlaybackStopped += OnPlaybackStopped;
+
             _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
         }
 
-        private void EnsureDeviceCreated()
+        private void OnPlaybackStopped(object? sender, StoppedEventArgs args)
         {
-            CreateDevice();
-        }
+            if (_reader != null)
+            {
+                _reader.Position = 0;
+            }
 
-        private void OnPlaybackStopped()
-        {
             _playbackStateChanged.OnNext(_playbackDevice.PlaybackState);
         }
 
-        private void OpenFile(string fileName)
+        private void OpenFile(string filePath)
         {
             try
             {
-                var inputStream = new AudioFileReader(fileName);
-                _fileStream = inputStream;
-                var provider = new SampleProvider(inputStream);
+                _reader = new AudioFileReader(filePath);
+
+                var provider = new SampleProvider(_reader);
 
                 _audioDataAvailableDisposable =
                     provider.AudioDataAvailable.Subscribe(x => _audioDataAvailable.OnNext(x));
