@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0-windows10.0.19041</TargetFramework>
+        <AssemblyName>SystemAudioRecordingSoftware.Infrastructure</AssemblyName>
+        <OutputPath>$(HostOutputPath)</OutputPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\SystemAudioRecordingSoftware.Application\SystemAudioRecordingSoftware.Application.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AutoMapper" Version="10.1.1"/>
+        <PackageReference Include="ReactiveUI" Version="13.2.2"/>
+        <PackageReference Include="Splat.Autofac" Version="10.0.1"/>
+    </ItemGroup>
+
+</Project>

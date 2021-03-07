@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0-windows10.0.19041</TargetFramework>
+        <AssemblyName>SystemAudioRecordingSoftware.Application</AssemblyName>
+        <OutputPath>$(HostOutputPath)</OutputPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\SystemAudioRecordingSoftware.Domain\SystemAudioRecordingSoftware.Domain.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NAudio" Version="2.0.0"/>
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net5.0-windows10.0.19041</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <OutputPath>$(HostOutputPath)</OutputPath>
+    <AssemblyName>SystemAudioRecordingSoftware</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MaterialDesignThemes" Version="4.0.0"/>
+    <PackageReference Include="SkiaSharp.Views.WPF" Version="2.80.3-preview.18"/>
+    <PackageReference Include="ReactiveUI" Version="13.2.2"/>
+    <PackageReference Include="ReactiveUI.Events.WPF" Version="13.2.2"/>
+    <PackageReference Include="ReactiveUI.Fody" Version="13.2.2"/>
+    <PackageReference Include="ReactiveUI.WPF" Version="13.2.2"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SystemAudioRecordingSoftware.Infrastructure\SystemAudioRecordingSoftware.Infrastructure.csproj"/>
+  </ItemGroup>
+</Project>

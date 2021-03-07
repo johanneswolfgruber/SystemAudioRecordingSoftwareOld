@@ -1,0 +1,139 @@
+﻿<views1:MainWindowBase
+    x:Class="SystemAudioRecordingSoftware.Presentation.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:SystemAudioRecordingSoftware.Presentation.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views1="clr-namespace:SystemAudioRecordingSoftware.Presentation.Views"
+    Width="1200"
+    Height="800"
+    MinWidth="600"
+    MinHeight="500"
+    Background="{DynamicResource MaterialDesignPaper}"
+    FontFamily="{materialDesign:MaterialDesignFont}"
+    TextElement.FontSize="14"
+    TextElement.FontWeight="Medium"
+    TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+    mc:Ignorable="d">
+    <views1:MainWindowBase.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/WaveformControl.Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </views1:MainWindowBase.Resources>
+    <DockPanel>
+        <materialDesign:ColorZone
+            Padding="16"
+            materialDesign:ShadowAssist.ShadowDepth="Depth2"
+            DockPanel.Dock="Top"
+            Mode="PrimaryMid">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button
+                        x:Name="RecordButton"
+                        materialDesign:RippleAssist.Feedback="{Binding RelativeSource={RelativeSource Self}, Path=Foreground, Converter={StaticResource BrushRoundConverter}}"
+                        Content="{materialDesign:PackIcon Kind=Record,
+                                                          Size=24}"
+                        Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type FrameworkElement}}, Path=(TextElement.Foreground)}"
+                        Style="{DynamicResource MaterialDesignToolButton}"
+                        ToolTip="Record" />
+                    <Button
+                        x:Name="StopButton"
+                        Margin="24,0,12,0"
+                        materialDesign:RippleAssist.Feedback="{Binding RelativeSource={RelativeSource Self}, Path=Foreground, Converter={StaticResource BrushRoundConverter}}"
+                        Content="{materialDesign:PackIcon Kind=Stop,
+                                                          Size=24}"
+                        Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type FrameworkElement}}, Path=(TextElement.Foreground)}"
+                        Style="{DynamicResource MaterialDesignToolButton}"
+                        ToolTip="Stop Recording" />
+                    <Button
+                        x:Name="SnipButton"
+                        Margin="8,0,12,0"
+                        materialDesign:RippleAssist.Feedback="{Binding RelativeSource={RelativeSource Self}, Path=Foreground, Converter={StaticResource BrushRoundConverter}}"
+                        Content="{materialDesign:PackIcon Kind=Scissors,
+                                                          Size=24}"
+                        Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type FrameworkElement}}, Path=(TextElement.Foreground)}"
+                        Style="{DynamicResource MaterialDesignToolButton}"
+                        ToolTip="Add Snip At Current Position" />
+                    <Button
+                        x:Name="BurnButton"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        materialDesign:RippleAssist.Feedback="{Binding RelativeSource={RelativeSource Self}, Path=Foreground, Converter={StaticResource BrushRoundConverter}}"
+                        Content="{materialDesign:PackIcon Kind=Fire,
+                                                          Size=24}"
+                        Foreground="{Binding RelativeSource={RelativeSource AncestorType={x:Type FrameworkElement}}, Path=(TextElement.Foreground)}"
+                        Style="{DynamicResource MaterialDesignToolButton}"
+                        ToolTip="Open CD Burning Menu" />
+                </StackPanel>
+                <!--  <materialDesign:PopupBox DockPanel.Dock="Right" PlacementMode="BottomAndAlignRightEdges"  -->
+                <!--  StaysOpen="False">  -->
+                <!--     <StackPanel> -->
+                <!--  <StackPanel Orientation="Horizontal"  -->
+                <!--  HorizontalAlignment="Center"  -->
+                <!--  Margin="10">  -->
+                <!--  <TextBlock Text="Light"  -->
+                <!--  Margin="0 0 10 0" />  -->
+                <!--  <ToggleButton x:Name="DarkModeToggleButton"  -->
+                <!--  Click="MenuDarkModeButton_Click" />  -->
+                <!--  <TextBlock Text="Dark"  -->
+                <!--  Margin="10 0 0 0" />  -->
+                <!--         </StackPanel> -->
+                <!--         <Separator /> -->
+                <!--         <Button Content="Hello World" Click="MenuPopupButton_OnClick" /> -->
+                <!--         <Button Content="Nice Popup" Click="MenuPopupButton_OnClick" /> -->
+                <!--         <Button Content="Can't Touch This" IsEnabled="False" /> -->
+                <!--         <Separator /> -->
+                <!--         <Button Content="Goodbye" Click="MenuPopupButton_OnClick" /> -->
+                <!--     </StackPanel> -->
+                <!-- </materialDesign:PopupBox> -->
+                <TextBlock
+                    x:Name="TitleText"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="System Audio Recording Software"
+                    FontSize="22" />
+            </DockPanel>
+        </materialDesign:ColorZone>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <materialDesign:Card
+                Grid.Row="1"
+                Grid.Column="0"
+                Margin="24"
+                materialDesign:ShadowAssist.ShadowDepth="Depth5">
+                <controls:WaveformControl
+                    x:Name="WaveformControl"
+                    DisplayAudioData="{Binding AudioData}"
+                    LengthInSeconds="{Binding LengthInSeconds}"
+                    Pause="{Binding RecordingsList.PauseCommand}"
+                    Play="{Binding RecordingsList.PlayCommand}"
+                    Reset="{Binding ResetWaveform}"
+                    SnipAdded="{Binding SnipAddedCommand}"
+                    SnipRemoved="{Binding SnipRemovedCommand}"
+                    SnipTimeStamps="{Binding SnipTimeStamps}"
+                    Stop="{Binding RecordingsList.StopCommand}" />
+            </materialDesign:Card>
+
+            <materialDesign:Card
+                Grid.Row="1"
+                Grid.Column="1"
+                Margin="0,24,24,24"
+                materialDesign:ShadowAssist.ShadowDepth="Depth5">
+                <views1:RecordingsListView x:Name="RecordingsList" />
+            </materialDesign:Card>
+        </Grid>
+    </DockPanel>
+</views1:MainWindowBase>
