@@ -4,7 +4,7 @@ using SystemAudioRecordingSoftware.Domain.Events;
 using SystemAudioRecordingSoftware.Domain.Model;
 using SystemAudioRecordingSoftware.Domain.Types;
 
-namespace SystemAudioRecordingSoftware.Infrastructure.Interfaces
+namespace SystemAudioRecordingSoftware.Application.Interfaces
 {
     public interface IRecordsRepository
     {
@@ -14,7 +14,6 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Interfaces
 
         Result<Recording> GetById(Guid id);
         event EventHandler<RecordingChangedEventArgs> RecordingChanged;
-
         event EventHandler<RecordingsCollectionChangedEventArgs> RecordingsCollectionChanged;
 
         Result RemoveRecording(Guid id);

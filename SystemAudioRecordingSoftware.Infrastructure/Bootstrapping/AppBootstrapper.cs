@@ -6,11 +6,11 @@ using NAudio.Wave;
 using ReactiveUI;
 using Splat;
 using Splat.Autofac;
+using System;
 using System.Reflection;
 using SystemAudioRecordingSoftware.Application.Interfaces;
 using SystemAudioRecordingSoftware.Application.Services;
 using SystemAudioRecordingSoftware.Domain.Model;
-using SystemAudioRecordingSoftware.Infrastructure.Interfaces;
 using SystemAudioRecordingSoftware.Infrastructure.Services;
 
 namespace SystemAudioRecordingSoftware.Infrastructure.Bootstrapping
@@ -36,8 +36,9 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Bootstrapping
             var mapper = configuration.CreateMapper();
             containerBuilder.RegisterInstance(mapper);
 
-            containerBuilder.RegisterType<WaveOutEvent>().As<IWavePlayer>();
+            containerBuilder.Register<Func<IWavePlayer>>(_ => () => new WaveOutEvent {DesiredLatency = 200});
             containerBuilder.RegisterType<DisplayDataProvider>().As<IDisplayDataProvider>();
+            containerBuilder.RegisterType<SnippingService>().As<ISnippingService>();
             containerBuilder.RegisterType<RecordsRepository>().As<IRecordsRepository>().SingleInstance();
             containerBuilder.RegisterType<RecordsService>().As<IRecordsService>().SingleInstance();
             containerBuilder.RegisterType<RecordingService>().As<IRecordingService>().SingleInstance();

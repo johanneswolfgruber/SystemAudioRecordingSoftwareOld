@@ -3,10 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using SystemAudioRecordingSoftware.Application.Interfaces;
 using SystemAudioRecordingSoftware.Domain.Events;
 using SystemAudioRecordingSoftware.Domain.Model;
 using SystemAudioRecordingSoftware.Domain.Types;
-using SystemAudioRecordingSoftware.Infrastructure.Interfaces;
 
 namespace SystemAudioRecordingSoftware.Infrastructure.Services
 {
@@ -27,7 +27,12 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
         {
             var id = Guid.NewGuid();
             var path = Path.Combine(Path.GetTempPath(), id + ".wav");
-            var recording = new Recording(id, string.Empty, new List<Track>(), TimeSpan.Zero, path);
+            var recording = new Recording(
+                id,
+                string.Empty,
+                new List<Track> {new(Guid.NewGuid(), id, "Track 1", path, TimeSpan.Zero, TimeSpan.Zero)},
+                TimeSpan.Zero,
+                path);
 
             _recordings.Add(recording.Id, recording);
 

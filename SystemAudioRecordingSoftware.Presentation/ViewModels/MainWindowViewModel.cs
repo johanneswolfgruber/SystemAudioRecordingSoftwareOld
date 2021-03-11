@@ -20,15 +20,18 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
         private readonly IRecordingService _recordingService;
         private readonly IRecordsService _recordsService;
         private readonly Subject<Unit> _resetRequest = new();
+        private readonly ISnippingService? _snippingService;
         private Guid? _currentRecordingId;
 
         public MainWindowViewModel(
             IRecordingService? recordingService = null,
             IPlaybackService? playbackService = null,
-            IRecordsService? recordsService = null)
+            IRecordsService? recordsService = null,
+            ISnippingService? snippingService = null)
         {
             _recordingService = recordingService ?? Locator.Current.GetService<IRecordingService>();
             _recordsService = recordsService ?? Locator.Current.GetService<IRecordsService>();
+            _snippingService = snippingService ?? Locator.Current.GetService<ISnippingService>();
 
             _recordingService.CaptureStateChanged += OnCaptureStateChanged;
             _recordingService.DisplayDataProvider.DataAvailable += OnAudioDataAvailable;
@@ -40,7 +43,7 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
             StopCommand = ReactiveCommand.Create(OnStop, canStopOrSnip);
             // SnipCommand = ReactiveCommand.Create(OnSnip, canStopOrSnip);
             BurnCommand = ReactiveCommand.Create(OnBurn, canRecordOrBurn);
-            // SnipAddedCommand = ReactiveCommand.Create<TimeSpan, Unit>(OnSnipAdded);
+            SnipAddedCommand = ReactiveCommand.Create<TimeSpan, Unit>(OnSnipAdded);
             SnipRemovedCommand = ReactiveCommand.Create<TimeSpan, Unit>(OnSnipRemoved);
 
             RecordingsList = new RecordingsListViewModel(playbackService, recordsService);
@@ -94,7 +97,12 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
 
         private void OnRecord()
         {
-            _recordingService.StartRecording();
+            var result = _recordingService.StartRecording();
+            if (result.Succeeded)
+            {
+                _currentRecordingId = result.Value;
+            }
+
             ResetWaveformView();
         }
 
@@ -120,14 +128,19 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
         //     SnipTimeStamps.Add(time);
         // }
         //
-        // private Unit OnSnipAdded(TimeSpan timeStamp)
-        // {
-        //     _recordingService.SnipRecording(_currentRecordingId,
-        //         timeStamp); // TODO: _currentRecordingId needs to change with selection
-        //     SnipTimeStamps.Add(timeStamp);
-        //
-        //     return Unit.Default;
-        // }
+        private Unit OnSnipAdded(TimeSpan timeStamp)
+        {
+            if (_currentRecordingId is null)
+            {
+                return Unit.Default;
+            }
+
+            _snippingService!.SnipRecording(_currentRecordingId.Value,
+                timeStamp); // TODO: _currentRecordingId needs to change with selection
+            SnipTimeStamps.Add(timeStamp);
+
+            return Unit.Default;
+        }
 
         private Unit OnSnipRemoved(TimeSpan timeStamp)
         {

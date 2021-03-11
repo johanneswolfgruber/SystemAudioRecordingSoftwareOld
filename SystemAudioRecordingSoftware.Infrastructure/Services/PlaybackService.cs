@@ -1,4 +1,5 @@
 ﻿using NAudio.Wave;
+using Splat;
 using System;
 using System.Diagnostics;
 using SystemAudioRecordingSoftware.Application.Interfaces;
@@ -8,12 +9,14 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
 {
     public class PlaybackService : IPlaybackService
     {
+        private readonly Func<IWavePlayer> _playbackDeviceFactory;
         private IWavePlayer _playbackDevice;
         private AudioFileReader? _reader;
 
-        public PlaybackService(IWavePlayer playbackDevice)
+        public PlaybackService(Func<IWavePlayer>? playbackDeviceFactory = null)
         {
-            _playbackDevice = playbackDevice;
+            _playbackDeviceFactory = playbackDeviceFactory ?? Locator.Current.GetService<Func<IWavePlayer>>();
+            _playbackDevice = _playbackDeviceFactory();
         }
 
         public bool IsPlaying => _playbackDevice.PlaybackState == PlaybackState.Playing;
@@ -38,6 +41,7 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
             CloseFile();
             CreateDevice();
             OpenFile(filePath);
+            _playbackDevice.Play();
         }
 
         public void StopPlayback()
@@ -66,7 +70,7 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
 
         private void CreateDevice()
         {
-            _playbackDevice = new WaveOutEvent {DesiredLatency = 200};
+            _playbackDevice = _playbackDeviceFactory();
 
             _playbackDevice.PlaybackStopped += OnPlaybackStopped;
 

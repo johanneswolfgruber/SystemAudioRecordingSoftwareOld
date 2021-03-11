@@ -93,12 +93,12 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
 
         private void OnPlay()
         {
-            if (SelectedRecording?.SelectedTrack?.FilePath == null)
+            if (SelectedRecording?.FilePath == null)
             {
                 return;
             }
 
-            _playbackService.Play(SelectedRecording.SelectedTrack.FilePath);
+            _playbackService.Play(SelectedRecording.FilePath);
         }
 
         private void OnRecordingChanged(object? sender, RecordingChangedEventArgs e)

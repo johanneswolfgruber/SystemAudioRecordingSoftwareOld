@@ -6,7 +6,6 @@ using SystemAudioRecordingSoftware.Application.Interfaces;
 using SystemAudioRecordingSoftware.Domain.Events;
 using SystemAudioRecordingSoftware.Domain.Model;
 using SystemAudioRecordingSoftware.Domain.Types;
-using SystemAudioRecordingSoftware.Infrastructure.Interfaces;
 
 namespace SystemAudioRecordingSoftware.Infrastructure.Services
 {
@@ -21,8 +20,17 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
             _mapper = mapper;
         }
 
-        public event EventHandler<RecordingChangedEventArgs>? RecordingChanged;
-        public event EventHandler<RecordingsCollectionChangedEventArgs>? RecordingsCollectionChanged;
+        public event EventHandler<RecordingChangedEventArgs>? RecordingChanged
+        {
+            add { _repository.RecordingChanged += value; }
+            remove { _repository.RecordingChanged -= value; }
+        }
+
+        public event EventHandler<RecordingsCollectionChangedEventArgs>? RecordingsCollectionChanged
+        {
+            add { _repository.RecordingsCollectionChanged += value; }
+            remove { _repository.RecordingsCollectionChanged -= value; }
+        }
 
         public RecordingDto CreateRecording()
         {

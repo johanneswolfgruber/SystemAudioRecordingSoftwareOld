@@ -3,6 +3,7 @@
 using NAudio.Wave;
 using System;
 using SystemAudioRecordingSoftware.Domain.Events;
+using SystemAudioRecordingSoftware.Domain.Types;
 
 namespace SystemAudioRecordingSoftware.Application.Interfaces
 {
@@ -19,8 +20,8 @@ namespace SystemAudioRecordingSoftware.Application.Interfaces
 
         event EventHandler<StoppedEventArgs> RecordingStopped;
 
-        void StartRecording();
+        Result<Guid> StartRecording();
 
-        void StopRecording();
+        Result StopRecording();
     }
 }

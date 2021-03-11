@@ -2,9 +2,12 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using SystemAudioRecordingSoftware.Application.Interfaces;
 using SystemAudioRecordingSoftware.Domain.Events;
-using SystemAudioRecordingSoftware.Infrastructure.Interfaces;
+using SystemAudioRecordingSoftware.Domain.Model;
+using SystemAudioRecordingSoftware.Domain.Types;
 
 namespace SystemAudioRecordingSoftware.Infrastructure.Services
 {
@@ -13,6 +16,7 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
         private readonly IMapper _mapper;
         private readonly IRecordsRepository _repository;
         private WasapiLoopbackCapture _capture;
+        private Recording? _currentRecording;
         private WaveFileWriter? _writer;
 
         public RecordingService(IRecordsRepository repository, IDisplayDataProvider dataProvider, IMapper mapper)
@@ -42,24 +46,32 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
         public IDisplayDataProvider DisplayDataProvider { get; }
         public bool IsRecording => _capture.CaptureState != CaptureState.Stopped;
 
-        public void StartRecording()
+        public Result<Guid> StartRecording()
         {
             InitializeRecordingEngine();
             _capture.StartRecording();
             CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
+
+            if (_currentRecording is null)
+            {
+                return Result.Error<Guid>("No recording created");
+            }
+
+            return Result.Success(_currentRecording.Id);
         }
 
-        public void StopRecording()
+        public Result StopRecording()
         {
             _capture.StopRecording();
             CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
+            return Result.Success();
         }
 
         private void InitializeRecordingEngine()
         {
             _capture = new WasapiLoopbackCapture();
-            var recording = _repository.CreateRecording();
-            _writer = new WaveFileWriter(recording.FilePath, _capture.WaveFormat);
+            _currentRecording = _repository.CreateRecording();
+            _writer = new WaveFileWriter(_currentRecording.FilePath, _capture.WaveFormat);
             DisplayDataProvider.WaveFormat = _capture.WaveFormat;
 
             _capture.DataAvailable += OnDataAvailable;
@@ -79,10 +91,17 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
 
         private void OnRecordingStopped(object? sender, StoppedEventArgs args)
         {
-            if (_writer == null)
+            if (_writer is null)
             {
                 throw new InvalidOperationException("The WaveFileWriter is not set");
             }
+
+            if (_currentRecording is null)
+            {
+                throw new InvalidOperationException("The Recording is not set");
+            }
+
+            _repository.UpdateRecording(_currentRecording with {Length = _writer.TotalTime});
 
             _writer.Dispose();
             _writer = null;
@@ -92,6 +111,23 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
             _capture.Dispose();
 
             CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
+
+            var nextStartTimeStamp = _currentRecording.Tracks.Count > 1
+                ? _currentRecording.Tracks[1].Start
+                : _currentRecording.Length;
+            var tracks = _currentRecording.Tracks
+                .OrderBy(t => t.Start)
+                .ToList();
+
+            var newTracks = new List<Track>();
+            for (int i = 0; i < tracks.Count - 1; i++)
+            {
+                var length = nextStartTimeStamp - tracks[i].Start;
+                nextStartTimeStamp = tracks[i + 1].Start;
+                newTracks.Add(tracks[i] with {Name = $"Track {i + 1}", Length = length});
+            }
+
+            _repository.UpdateRecording(_currentRecording with {Tracks = newTracks});
         }
     }
 }
