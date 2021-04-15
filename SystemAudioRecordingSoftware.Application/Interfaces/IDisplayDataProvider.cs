@@ -9,6 +9,8 @@ namespace SystemAudioRecordingSoftware.Application.Interfaces
     public interface IDisplayDataProvider
     {
         int NotificationCount { get; set; }
+        
+        TimeSpan TotalTime { get; set; }
 
         WaveFormat WaveFormat { get; set; }
 

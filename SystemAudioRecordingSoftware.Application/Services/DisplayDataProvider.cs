@@ -17,9 +17,12 @@ namespace SystemAudioRecordingSoftware.Application.Services
         {
             _waveFormat = new WaveFormat();
             NotificationCount = WaveFormat.SampleRate / 100;
+            TotalTime = TimeSpan.Zero;
         }
 
         public int NotificationCount { get; set; }
+
+        public TimeSpan TotalTime { get; set; }
 
         public WaveFormat WaveFormat
         {
@@ -50,24 +53,27 @@ namespace SystemAudioRecordingSoftware.Application.Services
 
         private void Add(float[] buffer, int offset, int count)
         {
-            var audioData = new List<float>();
+            var audioData = new List<AudioDataPoint>();
+            var frameTime = TimeSpan.FromSeconds(((double)count / WaveFormat.Channels) / WaveFormat.SampleRate);
 
             for (int n = 0; n < count; n += WaveFormat.Channels)
             {
                 var value = buffer[n + offset];
-
                 _maxValue = Math.Max(_maxValue, value);
                 _count++;
 
                 if (_count >= NotificationCount && NotificationCount > 0)
                 {
-                    audioData.Add(_maxValue);
+                    var timeStamp = 
+                        TotalTime + TimeSpan.FromMilliseconds(((double)n / count) * frameTime.TotalMilliseconds);
+                    audioData.Add(new AudioDataPoint(timeStamp, _maxValue));
                     Reset();
                 }
             }
 
-            var totalTime = TimeSpan.FromSeconds(((double)count / WaveFormat.Channels) / WaveFormat.SampleRate);
-            DataAvailable?.Invoke(this, new AudioDataAvailableEventArgs(new AudioDataDto(audioData, totalTime)));
+            TotalTime += frameTime;
+
+            DataAvailable?.Invoke(this, new AudioDataAvailableEventArgs(new AudioDataDto(audioData)));
         }
 
         private void Reset()

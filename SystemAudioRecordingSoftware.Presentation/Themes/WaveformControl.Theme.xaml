@@ -3,13 +3,14 @@
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
                     xmlns:skia="clr-namespace:SkiaSharp.Views.WPF;assembly=SkiaSharp.Views.WPF"
                     xmlns:skiaSharp="clr-namespace:SkiaSharp;assembly=SkiaSharp"
-                    xmlns:controls="clr-namespace:SystemAudioRecordingSoftware.Presentation.Controls">
+                    xmlns:controls="clr-namespace:SystemAudioRecordingSoftware.Presentation.Controls"
+                    xmlns:waveform="clr-namespace:SystemAudioRecordingSoftware.Presentation.Controls.Waveform">
     
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
     </ResourceDictionary.MergedDictionaries>
     
-    <ControlTemplate x:Key="WaveformControlTemplate" TargetType="{x:Type controls:WaveformControl}">
+    <ControlTemplate x:Key="WaveformControlTemplate" TargetType="{x:Type waveform:WaveformControl}">
         <Grid x:Name="PART_Content"
               Width="{TemplateBinding Width}"
               Height="{TemplateBinding Height}">
@@ -62,6 +63,14 @@
                 HorizontalAlignment="Stretch" />
             <Canvas
                 x:Name="PART_OverviewLineCanvas"
+                HorizontalAlignment="Stretch"
+                Width="{TemplateBinding Width}"
+                Height="{TemplateBinding OverviewHeight}"
+                Grid.Row="2"
+                Grid.Column="0" />
+            <Canvas
+                x:Name="PART_OverviewRectangleCanvas"
+                Background="Transparent"
                 HorizontalAlignment="Stretch"
                 Width="{TemplateBinding Width}"
                 Height="{TemplateBinding OverviewHeight}"
@@ -133,7 +142,7 @@
         </Grid>
     </ControlTemplate>
     
-    <Style TargetType="{x:Type controls:WaveformControl}">
+    <Style TargetType="{x:Type waveform:WaveformControl}">
         <Setter Property="Template" Value="{StaticResource WaveformControlTemplate}"/>
         <Setter Property="OverviewHeight" Value="100" />
         <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignTextBoxBorder}" />

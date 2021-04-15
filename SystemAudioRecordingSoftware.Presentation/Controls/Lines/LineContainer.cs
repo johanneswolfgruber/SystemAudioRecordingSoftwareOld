@@ -5,9 +5,8 @@ using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
 
-namespace SystemAudioRecordingSoftware.Presentation.Controls
+namespace SystemAudioRecordingSoftware.Presentation.Controls.Lines
 {
     internal enum LineType
     {
@@ -20,7 +19,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls
         private readonly IDisposable _mainWaveformMouseEnter;
         private readonly IDisposable _mainWaveformMouseLeave;
 
-        public LineContainer(TimeSpan timestamp, Line mainWaveformLine, Line overviewWaveformLine)
+        public LineContainer(TimeSpan timestamp, System.Windows.Shapes.Line mainWaveformLine, System.Windows.Shapes.Line overviewWaveformLine)
         {
             Timestamp = timestamp;
             MainWaveformLine = mainWaveformLine;
@@ -41,15 +40,15 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls
         }
 
         public LineContainer(TimeSpan timestamp)
-            : this(timestamp, new Line(), new Line())
+            : this(timestamp, new System.Windows.Shapes.Line(), new System.Windows.Shapes.Line())
         {
         }
 
         public TimeSpan Timestamp { get; set; } // TODO: rework
 
-        public Line MainWaveformLine { get; }
+        public System.Windows.Shapes.Line MainWaveformLine { get; }
 
-        public Line OverviewWaveformLine { get; }
+        public System.Windows.Shapes.Line OverviewWaveformLine { get; }
 
         public void Dispose()
         {
@@ -57,7 +56,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls
             _mainWaveformMouseLeave.Dispose();
         }
 
-        public Line GetLine(LineType lineType)
+        public System.Windows.Shapes.Line GetLine(LineType lineType)
         {
             return lineType switch
             {

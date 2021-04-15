@@ -12,6 +12,7 @@ using System.Reactive;
 using System.Reactive.Subjects;
 using SystemAudioRecordingSoftware.Application.Interfaces;
 using SystemAudioRecordingSoftware.Domain.Events;
+using SystemAudioRecordingSoftware.Domain.Model;
 
 namespace SystemAudioRecordingSoftware.Presentation.ViewModels
 {
@@ -65,7 +66,7 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
 
         [Reactive] public string Title { get; set; } = "System Audio Recording Software";
 
-        public ObservableCollection<float> AudioData { get; } = new();
+        public ObservableCollection<AudioDataPoint> AudioData { get; } = new();
 
         public ObservableCollection<TimeSpan> SnipTimeStamps { get; } = new();
 
@@ -75,14 +76,14 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
 
         [Reactive] public string? FilePath { get; set; }
 
-        [Reactive] public TimeSpan LengthInSeconds { get; set; } = TimeSpan.Zero;
+        [Reactive] public TimeSpan TotalTime { get; set; } = TimeSpan.Zero;
 
         public IObservable<Unit> ResetWaveform => _resetRequest;
 
         private void OnAudioDataAvailable(object? sender, AudioDataAvailableEventArgs e)
         {
             AudioData.AddRange(e.AudioData.Buffer);
-            LengthInSeconds += e.AudioData.TotalTime;
+            TotalTime = _recordingService.DisplayDataProvider.TotalTime;
         }
 
         private void OnBurn()
@@ -166,7 +167,7 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
         private void ResetWaveformView()
         {
             AudioData.Clear();
-            LengthInSeconds = TimeSpan.Zero;
+            TotalTime = TimeSpan.Zero;
             SnipTimeStamps.Clear();
             _resetRequest.OnNext(Unit.Default);
         }

@@ -7,6 +7,7 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:views1="clr-namespace:SystemAudioRecordingSoftware.Presentation.Views"
+    xmlns:waveform="clr-namespace:SystemAudioRecordingSoftware.Presentation.Controls.Waveform"
     Width="1200"
     Height="800"
     MinWidth="600"
@@ -114,10 +115,11 @@
                 Grid.Column="0"
                 Margin="24"
                 materialDesign:ShadowAssist.ShadowDepth="Depth5">
-                <controls:WaveformControl
+                <waveform:WaveformControl
                     x:Name="WaveformControl"
+                    Width="Auto"
                     DisplayAudioData="{Binding AudioData}"
-                    LengthInSeconds="{Binding LengthInSeconds}"
+                    LengthInSeconds="{Binding TotalTime}"
                     Pause="{Binding RecordingsList.PauseCommand}"
                     Play="{Binding RecordingsList.PlayCommand}"
                     Reset="{Binding ResetWaveform}"

@@ -73,6 +73,7 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
             _currentRecording = _repository.CreateRecording();
             _writer = new WaveFileWriter(_currentRecording.FilePath, _capture.WaveFormat);
             DisplayDataProvider.WaveFormat = _capture.WaveFormat;
+            DisplayDataProvider.TotalTime = TimeSpan.Zero;
 
             _capture.DataAvailable += OnDataAvailable;
             _capture.RecordingStopped += OnRecordingStopped;
