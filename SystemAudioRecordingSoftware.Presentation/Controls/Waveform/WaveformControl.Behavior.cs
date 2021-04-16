@@ -26,7 +26,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void RenderAudioWaveform()
         {
-            if (_overviewRectangle is null || _audioArray.Length == 0)
+            if (_overviewRectangle is null || _audioWaveform is null || _audioArray.Length == 0)
             {
                 return;
             }
@@ -41,12 +41,12 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             var leftEdge = Canvas.GetLeft(_overviewRectangle);
             var rightEdge = leftEdge + _overviewRectangle.Width;
             
-            _audioWaveform?.RenderWaveform(_audioArray, _length, new RectangleEdges(leftEdge, rightEdge));
+            _audioWaveform.RenderWaveform(_audioArray, _length, new RectangleEdges(leftEdge, rightEdge));
 
-            _snipLines.ForEach(l => l.UpdateMainWaveformLineX(ToMainWaveformXFromTimeStamp, 0, ActualWidth));
-            _markerLines?.UpdateMainWaveformLineX(ToMainWaveformXFromTimeStamp, 0, ActualWidth);
-            _snipLines.ForEach(l => l.UpdateOverviewWaveformLineX(ToOverviewWaveformXFromTimeStamp));
-            _markerLines?.UpdateOverviewWaveformLineX(ToOverviewWaveformXFromTimeStamp);
+            _snipLines.ForEach(l => l.UpdateMainWaveformLineX(_audioWaveform.MainWaveformTimeToX, 0, ActualWidth));
+            _markerLines?.UpdateMainWaveformLineX(_audioWaveform.MainWaveformTimeToX, 0, ActualWidth);
+            _snipLines.ForEach(l => l.UpdateOverviewWaveformLineX(_audioWaveform.TimeToX));
+            _markerLines?.UpdateOverviewWaveformLineX(_audioWaveform.TimeToX);
         }
 
         private void UpdateLength(TimeSpan newLength)
@@ -66,25 +66,23 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             {
                 _followPlayHeadButton.IsChecked = _shouldFollowWaveform;
             }
-
+        
             if (_audioWaveform is null)
             {
                 throw new NullReferenceException("AudioWaveform cannot be null");
             }
             
-            var maxTimeStamp = _length - WidthToTimeSpan(_audioWaveform.OverviewElement.CanvasSize.Width);
-            _currentTimestamp = TimeSpan.FromMilliseconds(
-                Math.Min(ToTimestampFromOverviewWaveformX(clickPosition.X).TotalMilliseconds, maxTimeStamp.TotalMilliseconds));
+            _currentTimestamp = _audioWaveform.XToTime(clickPosition.X);
         }
 
         private void AddMarker(double x)
         {
-            if (_mainLineCanvas == null || _overviewLineCanvas == null)
+            if (_mainLineCanvas is null || _overviewLineCanvas is null || _audioWaveform is null)
             {
                 return;
             }
 
-            var timestamp = ToTimestampFromMainWaveformX(x);
+            var timestamp = _audioWaveform.MainWaveformXToTime(x);
 
             if (_markerLines != null)
             {
@@ -98,19 +96,19 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void MoveLine(double newX)
         {
-            if (_mainLineCanvas == null || _overviewLineCanvas == null)
+            if (_mainLineCanvas is null || _overviewLineCanvas is null)
             {
                 return;
             }
 
-            if (_selectedLines == null || !(Math.Abs(_selectedLines.MainWaveformLine.X1 - newX) < 10))
+            if (_selectedLines is null || !(Math.Abs(_selectedLines.MainWaveformLine.X1 - newX) < 10))
             {
                 SetSelectedLines(null);
                 MoveLine(_markerLines, newX);
                 return;
             }
 
-            if (_markerLines != null)
+            if (_markerLines is not null)
             {
                 _mainLineCanvas.Children.Remove(_markerLines.MainWaveformLine);
                 _overviewLineCanvas.Children.Remove(_markerLines.OverviewWaveformLine);
@@ -122,12 +120,12 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void MoveLine(LineContainer? line, double newX)
         {
-            if (line == null)
+            if (line is null || _audioWaveform is null)
             {
                 return;
             }
 
-            var timestamp = ToTimestampFromMainWaveformX(newX);
+            var timestamp = _audioWaveform.MainWaveformXToTime(newX);
 
             var index = _snipLines.IndexOf(line);
             if (index > 0)
@@ -146,8 +144,8 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             }
 
             line.Timestamp = timestamp;
-            line.UpdateOverviewWaveformLineX(ToOverviewWaveformXFromTimeStamp);
-            line.UpdateMainWaveformLineX(ToMainWaveformXFromTimeStamp, 0, ActualWidth);
+            line.UpdateOverviewWaveformLineX(_audioWaveform.TimeToX);
+            line.UpdateMainWaveformLineX(_audioWaveform.MainWaveformTimeToX, 0, ActualWidth);
 
             if (index >= 0 && index < SnipTimeStamps.Count)
             {
@@ -168,24 +166,24 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private LineContainer? AddSnipToCanvas(TimeSpan timestamp)
         {
-            if (_mainLineCanvas == null || _overviewLineCanvas == null)
+            if (_mainLineCanvas is null || _overviewLineCanvas is null || _audioWaveform is null)
             {
                 return null;
             }
 
             var waveformLine = CreateSnipLine(
                 LineType.MainWaveformLine,
-                ToMainWaveformXFromTimeStamp,
+                _audioWaveform.MainWaveformTimeToX,
                 timestamp,
                 _mainLineCanvas.ActualHeight);
 
             var overviewLine = CreateSnipLine(
                 LineType.OverviewWaveformLine,
-                ToOverviewWaveformXFromTimeStamp,
+                _audioWaveform.TimeToX,
                 timestamp,
                 _overviewLineCanvas.ActualHeight);
 
-            if (waveformLine == null || overviewLine == null)
+            if (waveformLine is null || overviewLine is null)
             {
                 return null;
             }
@@ -222,60 +220,6 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             line.MouseDown += (o, _) => SetSelectedLines(_snipLines.Find(l => l.GetLine(lineType) == (Line)o));
 
             return line;
-        }
-
-        private TimeSpan ToTimestampFromOverviewWaveformX(double x)
-        {
-            if (_audioWaveform is null)
-            {
-                throw new NullReferenceException("AudioWaveform cannot be null");
-            }
-
-            return TimeSpan.FromMilliseconds((x * _length.TotalMilliseconds) / _audioWaveform.OverviewElement.CanvasSize.Width);
-        }
-
-        private TimeSpan ToTimestampFromMainWaveformX(double x)
-        {
-            if (_audioWaveform is null)
-            {
-                throw new NullReferenceException("AudioWaveform cannot be null");
-            }
-            
-            var timeSpan = _audioWaveform.MainWaveformEndTime - _audioWaveform.MainWaveformStartTime;
-            return _audioWaveform.MainWaveformStartTime + 
-                   TimeSpan.FromMilliseconds((x * timeSpan.TotalMilliseconds) / _audioWaveform.MainElement.CanvasSize.Width);
-        }
-
-        private double ToOverviewWaveformXFromTimeStamp(TimeSpan timestamp)
-        {
-            if (_audioWaveform is null)
-            {
-                throw new NullReferenceException("AudioWaveform cannot be null");
-            }
-            
-            return (timestamp.TotalMilliseconds * _audioWaveform.OverviewElement.CanvasSize.Width) / _length.TotalMilliseconds;
-        }
-
-        private double ToMainWaveformXFromTimeStamp(TimeSpan timestamp)
-        {
-            if (_audioWaveform is null)
-            {
-                throw new NullReferenceException("AudioWaveform cannot be null");
-            }
-            
-            var timeSpan = _audioWaveform.MainWaveformEndTime - _audioWaveform.MainWaveformStartTime;
-            var t = timestamp - _audioWaveform.MainWaveformStartTime;
-            return (t.TotalMilliseconds * _audioWaveform.MainElement.CanvasSize.Width) / timeSpan.TotalMilliseconds;
-        }
-
-        private TimeSpan WidthToTimeSpan(double width)
-        {
-            if (_audioArray.Length is 0)
-            {
-                return TimeSpan.Zero;
-            }
-
-            return TimeSpan.FromMilliseconds(width * _length.TotalMilliseconds / _audioArray.Length);
         }
 
         private enum HitType

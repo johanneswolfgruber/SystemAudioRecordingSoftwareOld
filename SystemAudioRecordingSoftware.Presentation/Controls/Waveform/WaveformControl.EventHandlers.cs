@@ -32,7 +32,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void OnOverviewLineCanvasMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
         {
-            if (_audioWaveform?.OverviewElement == null)
+            if (_audioWaveform?.MainElement is null)
             {
                 return;
             }
@@ -42,7 +42,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void OnOverviewLineCanvasMouseMove(object sender, MouseEventArgs mouseEventArgs)
         {
-            if (_audioWaveform?.OverviewElement == null || Mouse.LeftButton != MouseButtonState.Pressed)
+            if (_audioWaveform?.MainElement is null || Mouse.LeftButton != MouseButtonState.Pressed)
             {
                 return;
             }
@@ -87,13 +87,13 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void OnAddSnipClicked(object sender, RoutedEventArgs routedEventArgs)
         {
-            if (_markerLines == null)
+            if (_markerLines is null)
             {
                 return;
             }
 
             var lineContainer = AddSnipToCanvas(_markerLines.Timestamp);
-            if (lineContainer != null)
+            if (lineContainer is not null)
             {
                 _snipLines.Add(lineContainer);
                 SetSelectedLines(_snipLines.Last());
@@ -118,12 +118,12 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void OnDisplayAudioDataChanged(object? sender, NotifyCollectionChangedEventArgs args)
         {
-            if (args.NewItems == null)
+            if (args.NewItems is null)
             {
                 return;
             }
 
-            if (System.Windows.Application.Current == null)
+            if (System.Windows.Application.Current is null)
             {
                 return;
             }
@@ -207,7 +207,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private static void OnSnipTimeStampsPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (!(d is WaveformControl control))
+            if (d is not WaveformControl control)
             {
                 return;
             }
@@ -245,7 +245,9 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void OnOverviewRectangleCanvasMouseMove(object sender, MouseEventArgs args)
         {
-            if (_overviewRectangle is null || Mouse.LeftButton != MouseButtonState.Pressed)
+            if (_overviewRectangle is null || 
+                _overviewRectangleCanvas is null || 
+                Mouse.LeftButton != MouseButtonState.Pressed)
             {
                 return;
             }
@@ -276,8 +278,9 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                     newWidth += offsetX;
                     break;
                 case HitType.None:
-                default:
                     break;
+                default:
+                    throw new InvalidOperationException("Unknown hit type");
             }
 
             newX = Math.Clamp(newX, 0, _overviewRectangleCanvas.ActualWidth - _overviewRectangle.Width);
@@ -287,10 +290,10 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _overviewRectangle.Width = newWidth;
 
             _lastPoint = point;
+            _shouldFollowWaveform = false;
             if (_followPlayHeadButton is not null)
             {
-                _followPlayHeadButton.IsChecked = false;
-                _shouldFollowWaveform = false;
+                _followPlayHeadButton.IsChecked = _shouldFollowWaveform;
             }
         }
 
@@ -302,6 +305,11 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void OnOverviewRectangleCanvasMouseDown(object sender, MouseButtonEventArgs args)
         {
+            if (_overviewRectangle is null)
+            {
+                return;
+            }
+            
             _lastPoint = Mouse.GetPosition(_overviewRectangleCanvas);
 
             _mouseHitType = SetHitType(_overviewRectangle, _lastPoint);

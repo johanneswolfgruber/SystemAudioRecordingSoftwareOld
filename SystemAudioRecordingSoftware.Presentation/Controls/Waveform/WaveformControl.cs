@@ -15,6 +15,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 {
     // TODO: factor out line handling
     // TODO: rethink reset handling
+    // TODO: factor out resizing rectangle
 
     [TemplatePart(Name = ContentPart, Type = typeof(Grid))]
     [TemplatePart(Name = MainWaveformPart, Type = typeof(SKElement))]
@@ -60,8 +61,6 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         private Point _lastPoint;
         private bool _dragInProgress;
         private Rectangle? _overviewRectangle;
-        // private Rectangle? _overviewRectangleLeft;
-        // private Rectangle? _overviewRectangleRight;
         private Button? _removeSnipButton;
         private IDisposable? _resetSubscription;
         private LineContainer? _selectedLines;
@@ -93,8 +92,8 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         {
             base.OnApplyTemplate();
 
-            var mainSkElement = GetTemplateChild(MainWaveformPart) as SKElement;
-            var overviewSkElement = GetTemplateChild(OverviewWaveformPart) as SKElement;
+            var mainElement = GetTemplateChild(MainWaveformPart) as SKElement;
+            var overviewElement = GetTemplateChild(OverviewWaveformPart) as SKElement;
             _mainLineCanvas = GetTemplateChild(MainLineCanvasPart) as Canvas;
             _overviewLineCanvas = GetTemplateChild(OverviewLineCanvasPart) as Canvas;
             _overviewRectangleCanvas = GetTemplateChild(OverviewRectangleCanvasPart) as Canvas;
@@ -106,7 +105,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _followPlayHeadButton = GetTemplateChild(FollowPlayHeadPart) as ToggleButton;
             _timeDisplayTextBlock = GetTemplateChild(TimeDisplay) as TextBlock;
 
-            if (mainSkElement is null || _mainLineCanvas is null || overviewSkElement is null ||
+            if (mainElement is null || overviewElement is null || _mainLineCanvas is null || 
                 _overviewLineCanvas is null || _overviewRectangleCanvas is null || _zoomInButton is null || 
                 _zoomOutButton is null || _addSnipButton is null || _removeSnipButton is null || 
                 _followPlayHeadButton is null || _timeDisplayTextBlock is null)
@@ -115,21 +114,21 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             }
 
             _audioWaveform = new AudioWaveform(
-                mainSkElement, 
-                overviewSkElement, 
+                mainElement,
+                overviewElement,
                 new AudioWaveformStyle(MainWaveformColor, MainWaveformStrokeWidth),
                 new AudioWaveformStyle(OverviewWaveformColor, OverviewWaveformStrokeWidth));
 
-            mainSkElement.MouseDown += OnMainLineCanvasMouseDown;
-            mainSkElement.MouseMove += OnMainLineCanvasMouseMove;
-            overviewSkElement.MouseDown += OnOverviewLineCanvasMouseDown;
-            overviewSkElement.MouseMove += OnOverviewLineCanvasMouseMove;
+            mainElement.MouseDown += OnMainLineCanvasMouseDown;
+            mainElement.MouseMove += OnMainLineCanvasMouseMove;
+            overviewElement.MouseDown += OnOverviewLineCanvasMouseDown;
+            overviewElement.MouseMove += OnOverviewLineCanvasMouseMove;
 
-            _overviewRectangleCanvas.Width = overviewSkElement.Width;
+            _overviewRectangleCanvas.Width = mainElement.Width;
 
             _overviewRectangle = new Rectangle
             {
-                Width = 100,
+                Width = 300,
                 Height = _overviewRectangleCanvas.Height,
                 Fill = Brushes.White,
                 Opacity = 0.6,

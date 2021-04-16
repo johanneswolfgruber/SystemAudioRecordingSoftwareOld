@@ -3,7 +3,6 @@
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
                     xmlns:skia="clr-namespace:SkiaSharp.Views.WPF;assembly=SkiaSharp.Views.WPF"
                     xmlns:skiaSharp="clr-namespace:SkiaSharp;assembly=SkiaSharp"
-                    xmlns:controls="clr-namespace:SystemAudioRecordingSoftware.Presentation.Controls"
                     xmlns:waveform="clr-namespace:SystemAudioRecordingSoftware.Presentation.Controls.Waveform">
     
     <ResourceDictionary.MergedDictionaries>
