@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Shapes;
 using SystemAudioRecordingSoftware.Presentation.Controls.Lines;
 
@@ -26,22 +24,23 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void RenderAudioWaveform()
         {
-            if (_overviewRectangle is null || _audioWaveform is null || _audioArray.Length == 0)
+            if (_waveformSlider is null || _audioWaveform is null || _audioArray.Length == 0)
             {
                 return;
             }
 
-            _overviewRectangle.Visibility = Visibility.Visible;
+            _waveformSlider.SetRectangleVisibility(Visibility.Visible);
+            SetShouldFollowWaveform(_waveformSlider.ShouldFollowWaveform);
 
             if (_shouldFollowWaveform)
             {
-                Canvas.SetLeft(_overviewRectangle, ActualWidth - _overviewRectangle.Width);
+                _waveformSlider.SnapToRight();
             }
-            
-            var leftEdge = Canvas.GetLeft(_overviewRectangle);
-            var rightEdge = leftEdge + _overviewRectangle.Width;
-            
-            _audioWaveform.RenderWaveform(_audioArray, _length, new RectangleEdges(leftEdge, rightEdge));
+
+            _audioWaveform.RenderWaveform(
+                _audioArray, 
+                _length, 
+                new RectangleEdges(_waveformSlider.RectangleLeft, _waveformSlider.RectangleRight));
 
             _snipLines.ForEach(l => l.UpdateMainWaveformLineX(_audioWaveform.MainWaveformTimeToX, 0, ActualWidth));
             _markerLines?.UpdateMainWaveformLineX(_audioWaveform.MainWaveformTimeToX, 0, ActualWidth);
@@ -61,11 +60,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void SetOverviewWaveformClickPosition(Point clickPosition)
         {
-            _shouldFollowWaveform = false;
-            if (_followPlayHeadButton != null)
-            {
-                _followPlayHeadButton.IsChecked = _shouldFollowWaveform;
-            }
+            SetShouldFollowWaveform(false);
         
             if (_audioWaveform is null)
             {
@@ -222,52 +217,13 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             return line;
         }
 
-        private enum HitType
+        private void SetShouldFollowWaveform(bool shouldFollowWaveform)
         {
-            None, Body, LeftEdge, RightEdge
-        };
-
-        private HitType _mouseHitType = HitType.None;
-
-        private HitType SetHitType(Rectangle rect, Point point)
-        {
-            var left = Canvas.GetLeft(rect);
-            var right = left + rect.Width;
-            if (point.X < left) return HitType.None;
-            if (point.X > right) return HitType.None;
-            
-            const double gap = 10;
-            if (point.X - left < gap)
+            _shouldFollowWaveform = shouldFollowWaveform;
+            if (_followPlayHeadButton is not null)
             {
-                return HitType.LeftEdge;
+                _followPlayHeadButton.IsChecked = _shouldFollowWaveform;
             }
-            
-            if (right - point.X < gap)
-            {
-                return HitType.RightEdge;
-            }
-            
-            return HitType.Body;
-        }
-
-        private void SetMouseCursor()
-        {
-            var cursor = Cursors.Arrow;
-            switch (_mouseHitType)
-            {
-                case HitType.None:
-                    cursor = Cursors.Arrow;
-                    break;
-                case HitType.Body:
-                    cursor = Cursors.ScrollWE;
-                    break;
-                case HitType.LeftEdge:
-                case HitType.RightEdge:
-                    cursor = Cursors.SizeWE;
-                    break;
-            }
-
-            if (Cursor != cursor) Cursor = cursor;
         }
     }
 }

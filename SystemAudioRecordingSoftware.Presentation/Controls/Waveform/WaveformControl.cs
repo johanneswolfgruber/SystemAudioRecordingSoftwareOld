@@ -6,8 +6,6 @@ using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Media;
-using System.Windows.Shapes;
 using SystemAudioRecordingSoftware.Domain.Model;
 using SystemAudioRecordingSoftware.Presentation.Controls.Lines;
 
@@ -15,14 +13,13 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 {
     // TODO: factor out line handling
     // TODO: rethink reset handling
-    // TODO: factor out resizing rectangle
 
     [TemplatePart(Name = ContentPart, Type = typeof(Grid))]
     [TemplatePart(Name = MainWaveformPart, Type = typeof(SKElement))]
     [TemplatePart(Name = MainLineCanvasPart, Type = typeof(Canvas))]
     [TemplatePart(Name = OverviewWaveformPart, Type = typeof(SKElement))]
     [TemplatePart(Name = OverviewLineCanvasPart, Type = typeof(Canvas))]
-    [TemplatePart(Name = OverviewRectangleCanvasPart, Type = typeof(Canvas))]
+    [TemplatePart(Name = WaveformSliderPart, Type = typeof(Canvas))]
     [TemplatePart(Name = ButtonsPart, Type = typeof(StackPanel))]
     [TemplatePart(Name = ZoomInPart, Type = typeof(Button))]
     [TemplatePart(Name = ZoomOutPart, Type = typeof(Button))]
@@ -37,7 +34,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         private const string MainLineCanvasPart = "PART_MainLineCanvas";
         private const string OverviewWaveformPart = "PART_OverviewWaveform";
         private const string OverviewLineCanvasPart = "PART_OverviewLineCanvas";
-        private const string OverviewRectangleCanvasPart = "PART_OverviewRectangleCanvas";
+        private const string WaveformSliderPart = "PART_WaveformSlider";
         private const string ButtonsPart = "PART_Buttons";
         private const string ZoomInPart = "PART_ZoomInButton";
         private const string ZoomOutPart = "PART_ZoomOutButton";
@@ -57,10 +54,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         private Canvas? _mainLineCanvas;
         private LineContainer? _markerLines;
         private Canvas? _overviewLineCanvas;
-        private Canvas? _overviewRectangleCanvas;
-        private Point _lastPoint;
-        private bool _dragInProgress;
-        private Rectangle? _overviewRectangle;
+        private WaveformSlider? _waveformSlider;
         private Button? _removeSnipButton;
         private IDisposable? _resetSubscription;
         private LineContainer? _selectedLines;
@@ -96,7 +90,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             var overviewElement = GetTemplateChild(OverviewWaveformPart) as SKElement;
             _mainLineCanvas = GetTemplateChild(MainLineCanvasPart) as Canvas;
             _overviewLineCanvas = GetTemplateChild(OverviewLineCanvasPart) as Canvas;
-            _overviewRectangleCanvas = GetTemplateChild(OverviewRectangleCanvasPart) as Canvas;
+            var waveformSliderCanvas = GetTemplateChild(WaveformSliderPart) as Canvas;
 
             _zoomInButton = GetTemplateChild(ZoomInPart) as Button;
             _zoomOutButton = GetTemplateChild(ZoomOutPart) as Button;
@@ -106,7 +100,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _timeDisplayTextBlock = GetTemplateChild(TimeDisplay) as TextBlock;
 
             if (mainElement is null || overviewElement is null || _mainLineCanvas is null || 
-                _overviewLineCanvas is null || _overviewRectangleCanvas is null || _zoomInButton is null || 
+                _overviewLineCanvas is null || waveformSliderCanvas is null || _zoomInButton is null || 
                 _zoomOutButton is null || _addSnipButton is null || _removeSnipButton is null || 
                 _followPlayHeadButton is null || _timeDisplayTextBlock is null)
             {
@@ -119,31 +113,14 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 new AudioWaveformStyle(MainWaveformColor, MainWaveformStrokeWidth),
                 new AudioWaveformStyle(OverviewWaveformColor, OverviewWaveformStrokeWidth));
 
-            mainElement.MouseDown += OnMainLineCanvasMouseDown;
-            mainElement.MouseMove += OnMainLineCanvasMouseMove;
-            overviewElement.MouseDown += OnOverviewLineCanvasMouseDown;
-            overviewElement.MouseMove += OnOverviewLineCanvasMouseMove;
+            mainElement.MouseDown += OnMainElementMouseDown;
+            mainElement.MouseMove += OnMainElementMouseMove;
+            overviewElement.MouseDown += OnOverviewElementMouseDown;
+            overviewElement.MouseUp += OnOverviewElementMouseUp;
+            overviewElement.MouseMove += OnOverviewElementMouseMove;
 
-            _overviewRectangleCanvas.Width = mainElement.Width;
-
-            _overviewRectangle = new Rectangle
-            {
-                Width = 300,
-                Height = _overviewRectangleCanvas.Height,
-                Fill = Brushes.White,
-                Opacity = 0.6,
-                Visibility = Visibility.Hidden
-            };
-
-            _overviewRectangleCanvas.Children.Add(_overviewRectangle);
-            Canvas.SetLeft(_overviewRectangle, _lastPoint.X);
-            
-            _overviewRectangle.MouseEnter += OnOverviewRectangleMouseEnter;
-            _overviewRectangle.MouseLeave += OnOverviewRectangleMouseLeave;
-            _overviewRectangle.MouseMove += OnOverviewRectangleMouseMove;
-            _overviewRectangleCanvas.MouseDown += OnOverviewRectangleCanvasMouseDown;
-            _overviewRectangleCanvas.MouseUp += OnOverviewRectangleCanvasMouseUp;
-            _overviewRectangleCanvas.MouseMove += OnOverviewRectangleCanvasMouseMove;
+            waveformSliderCanvas.Width = mainElement.Width;
+            _waveformSlider = new WaveformSlider(waveformSliderCanvas);
 
             _zoomInButton.Click += OnZoomInClicked;
             _zoomOutButton.Click += OnZoomOutClicked;

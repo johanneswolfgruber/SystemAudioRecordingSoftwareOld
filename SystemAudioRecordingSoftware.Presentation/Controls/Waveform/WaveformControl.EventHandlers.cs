@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 {
     public partial class WaveformControl
     {
-        private void OnMainLineCanvasMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
+        private void OnMainElementMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
         {
             if (_audioWaveform?.MainElement == null)
             {
@@ -20,7 +19,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             AddMarker(mouseButtonEventArgs.GetPosition(_audioWaveform?.MainElement).X);
         }
 
-        private void OnMainLineCanvasMouseMove(object sender, MouseEventArgs mouseEventArgs)
+        private void OnMainElementMouseMove(object sender, MouseEventArgs mouseEventArgs)
         {
             if (_audioWaveform?.MainElement == null || Mouse.LeftButton != MouseButtonState.Pressed)
             {
@@ -30,17 +29,29 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             MoveLine(mouseEventArgs.GetPosition(_audioWaveform?.MainElement).X);
         }
 
-        private void OnOverviewLineCanvasMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
+        private void OnOverviewElementMouseDown(object sender, MouseButtonEventArgs mouseButtonEventArgs)
         {
             if (_audioWaveform?.MainElement is null)
             {
                 return;
             }
+            
+            SetShouldFollowWaveform(false);
+            if (_waveformSlider is not null)
+            {
+                _waveformSlider.ShouldFollowWaveform = _shouldFollowWaveform;
+            }
 
             SetOverviewWaveformClickPosition(mouseButtonEventArgs.GetPosition(_audioWaveform?.OverviewElement));
+            _waveformSlider?.OnRectangleCanvasMouseDown(sender, mouseButtonEventArgs);
+        }
+        
+        private void OnOverviewElementMouseUp(object sender, MouseButtonEventArgs mouseButtonEventArgs)
+        {
+            _waveformSlider?.OnRectangleCanvasMouseUp(sender, mouseButtonEventArgs);
         }
 
-        private void OnOverviewLineCanvasMouseMove(object sender, MouseEventArgs mouseEventArgs)
+        private void OnOverviewElementMouseMove(object sender, MouseEventArgs mouseEventArgs)
         {
             if (_audioWaveform?.MainElement is null || Mouse.LeftButton != MouseButtonState.Pressed)
             {
@@ -48,11 +59,16 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             }
 
             SetOverviewWaveformClickPosition(mouseEventArgs.GetPosition(_audioWaveform?.OverviewElement));
+            _waveformSlider?.OnRectangleCanvasMouseMove(sender, mouseEventArgs);
         }
 
         private void OnFollowPlayHeadClicked(object sender, RoutedEventArgs routedEventArgs)
         {
             _shouldFollowWaveform = _followPlayHeadButton?.IsChecked ?? true;
+            if (_waveformSlider is not null)
+            {
+                _waveformSlider.ShouldFollowWaveform = _shouldFollowWaveform;
+            }
         }
 
         private void OnRemoveSnipClicked(object sender, RoutedEventArgs routedEventArgs)
@@ -241,112 +257,6 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             }
 
             control.ResubscribeToResetObservable();
-        }
-
-        private void OnOverviewRectangleCanvasMouseMove(object sender, MouseEventArgs args)
-        {
-            if (_overviewRectangle is null || 
-                _overviewRectangleCanvas is null || 
-                Mouse.LeftButton != MouseButtonState.Pressed)
-            {
-                return;
-            }
-
-            var point = Mouse.GetPosition(_overviewRectangleCanvas);
-
-            if (!_dragInProgress)
-            {
-                _mouseHitType = SetHitType(_overviewRectangle, point);
-                SetMouseCursor();
-                return;
-            }
-
-            var offsetX = point.X - _lastPoint.X;
-            var newX = Canvas.GetLeft(_overviewRectangle);
-            var newWidth = _overviewRectangle.Width;
-
-            switch (_mouseHitType)
-            {
-                case HitType.Body:
-                    newX += offsetX;
-                    break;
-                case HitType.LeftEdge:
-                    newX += offsetX;
-                    newWidth -= offsetX;
-                    break;
-                case HitType.RightEdge:
-                    newWidth += offsetX;
-                    break;
-                case HitType.None:
-                    break;
-                default:
-                    throw new InvalidOperationException("Unknown hit type");
-            }
-
-            newX = Math.Clamp(newX, 0, _overviewRectangleCanvas.ActualWidth - _overviewRectangle.Width);
-            newWidth = Math.Clamp(newWidth, 20, _overviewRectangleCanvas.ActualWidth);
-
-            Canvas.SetLeft(_overviewRectangle, newX);
-            _overviewRectangle.Width = newWidth;
-
-            _lastPoint = point;
-            _shouldFollowWaveform = false;
-            if (_followPlayHeadButton is not null)
-            {
-                _followPlayHeadButton.IsChecked = _shouldFollowWaveform;
-            }
-        }
-
-        private void OnOverviewRectangleCanvasMouseUp(object sender, MouseButtonEventArgs args)
-        {
-            _dragInProgress = false;
-            Cursor = Cursors.Arrow;
-        }
-
-        private void OnOverviewRectangleCanvasMouseDown(object sender, MouseButtonEventArgs args)
-        {
-            if (_overviewRectangle is null)
-            {
-                return;
-            }
-            
-            _lastPoint = Mouse.GetPosition(_overviewRectangleCanvas);
-
-            _mouseHitType = SetHitType(_overviewRectangle, _lastPoint);
-            SetMouseCursor();
-
-            if (_mouseHitType == HitType.None) return;
-
-            _dragInProgress = true;
-        }
-
-        private void OnOverviewRectangleMouseLeave(object sender, MouseEventArgs args)
-        {
-            Cursor = Cursors.Arrow;
-        }
-
-        private void OnOverviewRectangleMouseEnter(object sender, MouseEventArgs args)
-        {
-            var x = args.GetPosition(_overviewRectangle).X;
-            if (x > 10 && x < _overviewRectangle?.Width - 10)
-            {
-                Cursor = Cursors.ScrollWE;
-                return;
-            }
-
-            Cursor = Cursors.SizeWE;
-        }
-
-        private void OnOverviewRectangleMouseMove(object sender, MouseEventArgs args)
-        {
-            var x = args.GetPosition(_overviewRectangle).X;
-            if (x > 10 && x < _overviewRectangle?.Width - 10)
-            {
-                Cursor = Cursors.ScrollWE;
-                return;
-            }
-
-            Cursor = Cursors.SizeWE;
         }
     }
 }
