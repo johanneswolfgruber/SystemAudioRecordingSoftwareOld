@@ -21,7 +21,7 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
         private readonly IRecordingService _recordingService;
         private readonly IRecordsService _recordsService;
         private readonly Subject<Unit> _resetRequest = new();
-        private readonly ISnippingService? _snippingService;
+        private readonly ISnippingService _snippingService;
         private Guid? _currentRecordingId;
 
         public MainWindowViewModel(
@@ -42,7 +42,7 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
 
             RecordCommand = ReactiveCommand.Create(OnRecord, canRecordOrBurn);
             StopCommand = ReactiveCommand.Create(OnStop, canStopOrSnip);
-            // SnipCommand = ReactiveCommand.Create(OnSnip, canStopOrSnip);
+            SnipCommand = ReactiveCommand.Create(OnSnip, canStopOrSnip);
             BurnCommand = ReactiveCommand.Create(OnBurn, canRecordOrBurn);
             SnipAddedCommand = ReactiveCommand.Create<TimeSpan, Unit>(OnSnipAdded);
             SnipRemovedCommand = ReactiveCommand.Create<TimeSpan, Unit>(OnSnipRemoved);
@@ -123,12 +123,16 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
         //     // _waveform.AddAudioData(data.Buffer, data.TotalNumberOfSingleChannelSamples, data.SampleRate);
         // }
 
-        // private void OnSnip()
-        // {
-        //     var time = _recordingService.SnipRecording();
-        //     SnipTimeStamps.Add(time);
-        // }
-        //
+        private void OnSnip()
+        {
+            var snippingResult = _snippingService.SnipCurrentRecording();
+            if (snippingResult.Failed)
+            {
+                return;
+            }
+            SnipTimeStamps.Add(snippingResult.Value);
+        }
+        
         private Unit OnSnipAdded(TimeSpan timeStamp)
         {
             if (_currentRecordingId is null)

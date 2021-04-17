@@ -4,35 +4,23 @@ using SkiaSharp.Views.WPF;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 using SystemAudioRecordingSoftware.Domain.Model;
 
 namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 {
     internal record AudioWaveformStyle(SKColor Color, float StrokeWidth);
 
-    internal readonly struct RectangleEdges
-    {
-        public RectangleEdges(double leftEdge, double rightEdge)
-        {
-            LeftEdge = leftEdge;
-            RightEdge = rightEdge;
-        }
-
-        public double LeftEdge { get; }
-        public double RightEdge { get; }
-    }
-
     internal class AudioWaveform
     {
         private AudioDataPoint[] _audioData = Array.Empty<AudioDataPoint>();
         private AudioDataPoint[] _mainWaveformAudioData = Array.Empty<AudioDataPoint>();
         private TimeSpan _length;
-        private RectangleEdges _overviewRectangleEdges;
         private TimeSpan _mainWaveformEndTime;
         private TimeSpan _mainWaveformStartTime;
         private readonly AudioWaveformStyle _mainStyle;
         private readonly AudioWaveformStyle _overviewStyle;
-        
+
         public AudioWaveform(
             SKElement mainElement,
             SKElement overviewElement,
@@ -41,6 +29,9 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         {
             MainElement = mainElement;
             OverviewElement = overviewElement;
+            WaveformSlider = new WaveformSlider(OverviewElement, XToTime);
+            MainLineDisplay = new LineDisplay(MainElement, MainWaveformXToTime, MainWaveformTimeToX);
+            OverviewLineDisplay = new ReadonlyLineDisplay(TimeToX);
             _mainStyle = mainStyle;
             _overviewStyle = overviewStyle;
 
@@ -50,51 +41,59 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         public SKElement MainElement { get; }
         public SKElement OverviewElement { get; }
+        public WaveformSlider WaveformSlider { get; }
+        public ILineDisplay MainLineDisplay { get; }
+        public ILineDisplay OverviewLineDisplay { get; }
 
-        public void RenderWaveform(AudioDataPoint[] audioData, TimeSpan length, RectangleEdges overviewRectangleEdges)
+        public bool ShouldFollowWaveform
+        {
+            get => WaveformSlider.ShouldFollowWaveform;
+            set => WaveformSlider.ShouldFollowWaveform = value;
+        }
+
+        public TimeSpan SelectedTimeStamp => WaveformSlider.SelectedTimeStamp;
+
+        public void RenderWaveform(AudioDataPoint[] audioData, TimeSpan length)
         {
             _audioData = audioData;
             _length = length;
-            _overviewRectangleEdges = overviewRectangleEdges;
 
             if (_audioData.Length == 0 || _length.TotalMilliseconds == 0)
             {
                 return;
             }
 
+            WaveformSlider.SetRectangleVisibility(Visibility.Visible);
             MainElement.InvalidateVisual();
             OverviewElement.InvalidateVisual();
         }
 
-        public TimeSpan MainWaveformXToTime(double x)
+        private TimeSpan MainWaveformXToTime(double x)
         {
             var timeSpan = _mainWaveformEndTime - _mainWaveformStartTime;
             return _mainWaveformStartTime +
                    TimeSpan.FromMilliseconds((x / MainElement.ActualWidth) * timeSpan.TotalMilliseconds);
         }
 
-        public double MainWaveformTimeToX(TimeSpan timestamp)
+        private double MainWaveformTimeToX(TimeSpan timestamp)
         {
             var timeSpan = _mainWaveformEndTime - _mainWaveformStartTime;
             var t = timestamp - _mainWaveformStartTime;
             return (t.TotalMilliseconds / timeSpan.TotalMilliseconds) * MainElement.ActualWidth;
         }
 
-        public TimeSpan XToTime(double x)
-        {
-            return TimeSpan.FromMilliseconds((x / MainElement.ActualWidth) * _length.TotalMilliseconds);
-        }
+        private TimeSpan XToTime(double x) => 
+            TimeSpan.FromMilliseconds((x / MainElement.ActualWidth) * _length.TotalMilliseconds);
 
-        public double TimeToX(TimeSpan time)
-        {
-            return (time.TotalMilliseconds / _length.TotalMilliseconds) * MainElement.ActualWidth;
-        }
+        private double TimeToX(TimeSpan time) => 
+            (time.TotalMilliseconds / _length.TotalMilliseconds) * MainElement.ActualWidth;
 
         private void OnPaintMainSurface(object? sender, SKPaintSurfaceEventArgs e)
         {
             var canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Transparent);
             RenderMainWaveform(canvas);
+            MainLineDisplay.Render(canvas);
         }
 
         private void OnPaintOverviewSurface(object? sender, SKPaintSurfaceEventArgs e)
@@ -102,58 +101,36 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             var canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Transparent);
             RenderOverview(canvas);
+            WaveformSlider.Render(canvas);
+            OverviewLineDisplay.SetLines(MainLineDisplay.Marker, MainLineDisplay.SnipLines.ToList());
+            OverviewLineDisplay.Render(canvas);
         }
 
         private void RenderMainWaveform(SKCanvas canvas)
         {
             _mainWaveformAudioData = GetMainWaveformAudioData();
-
-            if (_mainWaveformAudioData.Length > 0)
-            {
-                _mainWaveformStartTime = _mainWaveformAudioData[0].TimeStamp;
-                _mainWaveformEndTime = _mainWaveformAudioData[^1].TimeStamp;
-            }
+            SetMainWaveformStartAndEndTime();
 
             if (_mainWaveformAudioData.Length == 0 || _length.TotalSeconds == 0)
             {
                 return;
             }
 
-            var dimensions = canvas.DeviceClipBounds;
-            var midpoint = dimensions.Height / 2;
-            var width = dimensions.Width;
+            DrawWaveform(
+                canvas, 
+                GetAudioDataToRender(_mainWaveformAudioData, canvas.DeviceClipBounds.Width), 
+                CreatePaint(_mainStyle.Color, _mainStyle.StrokeWidth));
+        }
 
-            var audio = GetAudioDataToRender(_mainWaveformAudioData, width);
-
-            var paint = CreatePaint(_mainStyle.Color, _mainStyle.StrokeWidth);
-            var upperPath = new SKPath();
-            var lowerPath = new SKPath();
-            upperPath.MoveTo(new SKPoint(0, midpoint));
-            lowerPath.MoveTo(new SKPoint(0, midpoint));
-
-            var loopCount = audio.Count < width ? audio.Count : width;
-
-            for (var i = 0; i < loopCount; i++)
+        private void SetMainWaveformStartAndEndTime()
+        {
+            if (_mainWaveformAudioData.Length == 0)
             {
-                var amplitudeValue = audio[i].Data * midpoint;
-
-                var upperAmplitudePoint = new SKPoint
-                {
-                    X = i * ((float)width / audio.Count), Y = midpoint - Math.Abs(amplitudeValue)
-                };
-                var lowerAmplitudePoint = new SKPoint
-                {
-                    X = i * ((float)width / audio.Count), Y = midpoint + Math.Abs(amplitudeValue)
-                };
-
-                upperPath.LineTo(upperAmplitudePoint);
-                lowerPath.LineTo(lowerAmplitudePoint);
+                return;
             }
 
-            upperPath.LineTo(new SKPoint((audio.Count - 1) * ((float)width / audio.Count), midpoint));
-            lowerPath.LineTo(new SKPoint((audio.Count - 1) * ((float)width / audio.Count), midpoint));
-            canvas.DrawPath(upperPath, paint);
-            canvas.DrawPath(lowerPath, paint);
+            _mainWaveformStartTime = _mainWaveformAudioData[0].TimeStamp;
+            _mainWaveformEndTime = _mainWaveformAudioData[^1].TimeStamp;
         }
 
         private void RenderOverview(SKCanvas canvas)
@@ -163,30 +140,46 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 return;
             }
 
+            DrawWaveform(
+                canvas, 
+                GetAudioDataToRender(_audioData, canvas.DeviceClipBounds.Width), 
+                CreatePaint(_overviewStyle.Color, _overviewStyle.StrokeWidth));
+        }
+
+        private static void DrawWaveform(
+            SKCanvas canvas, 
+            IReadOnlyList<AudioDataPoint> audio,
+            SKPaint? paint)
+        {
             var dimensions = canvas.DeviceClipBounds;
-            var height = dimensions.Height;
+            var midpoint = dimensions.Height / 2;
             var width = dimensions.Width;
+            
+            var upperPath = new SKPath();
+            var lowerPath = new SKPath();
+            var startPoint = new SKPoint(0, midpoint);
+            upperPath.MoveTo(startPoint);
+            lowerPath.MoveTo(startPoint);
 
-            var audio = GetAudioDataToRender(_audioData, width);
-
-            var paint = CreatePaint(_overviewStyle.Color, _overviewStyle.StrokeWidth);
-            var path = new SKPath();
-            path.MoveTo(new SKPoint(0, height));
-
-            var loopCount = audio.Count < width ? audio.Count : width;
-
-            for (var i = 0; i < loopCount; i++)
+            for (var i = 0; i < audio.Count; i++)
             {
-                var amplitudeValue = audio[i].Data * height;
+                var amplitudeValue = audio[i].Data * midpoint;
+                var x = i * ((float)width / audio.Count);
+                var upperY = midpoint - Math.Abs(amplitudeValue);
+                var lowerY = midpoint + Math.Abs(amplitudeValue);
 
-                var amplitudePoint = new SKPoint(i * ((float)width / audio.Count),
-                    height - Math.Abs(amplitudeValue));
+                var upperAmplitudePoint = new SKPoint { X = x, Y = upperY };
+                var lowerAmplitudePoint = new SKPoint { X = x, Y = lowerY };
 
-                path.LineTo(amplitudePoint);
+                upperPath.LineTo(upperAmplitudePoint);
+                lowerPath.LineTo(lowerAmplitudePoint);
             }
 
-            path.LineTo(new SKPoint((audio.Count - 1) * ((float)width / audio.Count), height));
-            canvas.DrawPath(path, paint);
+            var endPoint = new SKPoint((audio.Count - 1) * ((float)width / audio.Count), midpoint);
+            upperPath.LineTo(endPoint);
+            lowerPath.LineTo(endPoint);
+            canvas.DrawPath(upperPath, paint);
+            canvas.DrawPath(lowerPath, paint);
         }
 
         private AudioDataPoint[] GetMainWaveformAudioData()
@@ -196,11 +189,11 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 return Array.Empty<AudioDataPoint>();
             }
 
-            var mainLeftTime = XToTime(_overviewRectangleEdges.LeftEdge);
-            var mainRightTime = XToTime(_overviewRectangleEdges.RightEdge);
+            var mainLeftTime = XToTime(WaveformSlider.RectangleLeft);
+            var mainRightTime = XToTime(WaveformSlider.RectangleRight);
             return _audioData
                 .Where(p => p.TimeStamp >= mainLeftTime &&
-                            p.TimeStamp <= mainRightTime)
+                                        p.TimeStamp <= mainRightTime)
                 .ToArray();
         }
 

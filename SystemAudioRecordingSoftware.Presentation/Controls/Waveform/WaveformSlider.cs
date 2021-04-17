@@ -1,9 +1,9 @@
-﻿using System;
+﻿using SkiaSharp;
+using SkiaSharp.Views.WPF;
+using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Shapes;
 using System.Windows.Input;
+using SystemAudioRecordingSoftware.Presentation.Controls.Shapes;
 
 namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 {
@@ -13,61 +13,68 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         {
             None, Body, LeftEdge, RightEdge
         };
-
-        private readonly Canvas _canvas;
+        
+        private readonly SKElement _skElement;
+        private readonly Func<double, TimeSpan> _xToTime;
         private readonly Rectangle _rectangle;
         private HitType _mouseHitType = HitType.None;
         private Point _lastPoint;
         private bool _dragInProgress;
         
-        public WaveformSlider(Canvas canvas)
+        public WaveformSlider(SKElement skElement, Func<double, TimeSpan> xToTime)
         {
-            _canvas = canvas;
+            _skElement = skElement;
+            _xToTime = xToTime;
 
             _rectangle = new Rectangle
             {
                 Width = 300,
-                Height = _canvas.Height,
-                Fill = Brushes.White,
-                Opacity = 0.6,
-                Visibility = Visibility.Hidden
+                Height = _skElement.CanvasSize.Height,
+                Left = (float)_lastPoint.X,
+                Opacity = 0
             };
-
-            _canvas.Children.Add(_rectangle);
-            Canvas.SetLeft(_rectangle, _lastPoint.X);
             
-            _rectangle.MouseEnter += OnRectangleMouseEnterAndMove;
-            _rectangle.MouseLeave += OnRectangleMouseLeave;
-            _rectangle.MouseMove += OnRectangleMouseEnterAndMove;
-            _canvas.MouseDown += OnRectangleCanvasMouseDown;
-            _canvas.MouseUp += OnRectangleCanvasMouseUp;
-            _canvas.MouseMove += OnRectangleCanvasMouseMove;
+            _skElement.MouseDown += OnMouseDown;
+            _skElement.MouseUp += OnMouseUp;
+            _skElement.MouseMove += OnMouseMove;
+            _skElement.MouseLeave += OnMouseLeave;
         }
 
         public double RectangleWidth => _rectangle.Width;
-        public double RectangleLeft => Canvas.GetLeft(_rectangle);
+        public double RectangleLeft => _rectangle.Left;
         public double RectangleRight => RectangleLeft + RectangleWidth;
         public bool ShouldFollowWaveform { get; set; } = true;
-
+        public TimeSpan SelectedTimeStamp { get; private set; }
 
         public void SetRectangleLeft(double left)
         {
-            Canvas.SetLeft(_rectangle, left);
+            _rectangle.Left = (float)left;
         }
 
         public void SetRectangleWidth(double width)
         {
-            _rectangle.Width = width;
+            _rectangle.Width = (float)width;
         }
 
         public void SetRectangleVisibility(Visibility visibility)
         {
-            _rectangle.Visibility = visibility;
+            _rectangle.Opacity = visibility == Visibility.Visible ? (byte)150 : (byte)0;
         }
 
         public void SnapToRight()
         {
-            SetRectangleLeft(_canvas.ActualWidth - RectangleWidth);
+            SetRectangleLeft(_skElement.ActualWidth - RectangleWidth);
+        }
+
+        public void Render(SKCanvas canvas)
+        {
+            if (ShouldFollowWaveform)
+            {
+                SnapToRight();
+            }
+            
+            _rectangle.Height = canvas.DeviceClipBounds.Height;
+            _rectangle.Draw(canvas);
         }
 
         private HitType SetHitType(Point point)
@@ -89,9 +96,15 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             return HitType.Body;
         }
 
-        private void SetMouseCursor(double x)
+        private void SetMouseCursor(double x, double y)
         {
-            if (x > 10 && x < RectangleWidth - 10)
+            if (!_rectangle.HitTest(x, y))
+            {
+                Mouse.OverrideCursor = null;
+                return;
+            }
+            
+            if (x > RectangleLeft + 10 && x < RectangleRight - 10)
             {
                 Mouse.OverrideCursor = Cursors.ScrollWE;
                 return;
@@ -100,14 +113,15 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             Mouse.OverrideCursor = Cursors.SizeWE;
         }
 
-        public void OnRectangleCanvasMouseMove(object sender, MouseEventArgs args)
+        private void OnMouseMove(object sender, MouseEventArgs args)
         {
+            var point = Mouse.GetPosition(_skElement);
+            SetMouseCursor(point.X, point.Y);
+
             if (Mouse.LeftButton != MouseButtonState.Pressed)
             {
                 return;
             }
-
-            var point = Mouse.GetPosition(_canvas);
 
             if (!_dragInProgress)
             {
@@ -137,25 +151,35 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                     throw new InvalidOperationException("Unknown hit type");
             }
 
-            newX = Math.Clamp(newX, 0, _canvas.ActualWidth - RectangleWidth);
-            newWidth = Math.Clamp(newWidth, 20, _canvas.ActualWidth);
+            newX = Math.Clamp(newX, 0, _skElement.ActualWidth - RectangleWidth);
+            newWidth = Math.Clamp(newWidth, 20, _skElement.ActualWidth);
 
-            SetRectangleWidth(newWidth);
             SetRectangleLeft(newX);
+            SetRectangleWidth(newWidth);
 
             _lastPoint = point;
-            ShouldFollowWaveform = false;
         }
 
-        public void OnRectangleCanvasMouseUp(object sender, MouseButtonEventArgs args)
+        private void OnMouseUp(object sender, MouseButtonEventArgs args)
         {
             _dragInProgress = false;
             Mouse.OverrideCursor = null;
         }
 
-        public void OnRectangleCanvasMouseDown(object sender, MouseButtonEventArgs args)
+        private void OnMouseDown(object sender, MouseButtonEventArgs args)
         {
-            _lastPoint = Mouse.GetPosition(_canvas);
+            _lastPoint = Mouse.GetPosition(_skElement);
+            ShouldFollowWaveform = false;
+            SelectedTimeStamp = _xToTime(_lastPoint.X);
+
+            if (!_rectangle.HitTest(_lastPoint.X, _lastPoint.Y))
+            {
+                SetRectangleLeft(_lastPoint.X);
+                if (_lastPoint.X + RectangleWidth > _skElement.ActualWidth)
+                {
+                    SetRectangleWidth(_skElement.ActualWidth - RectangleLeft);
+                }
+            }
 
             _mouseHitType = SetHitType(_lastPoint);
 
@@ -164,15 +188,9 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _dragInProgress = true;
         }
 
-        private void OnRectangleMouseLeave(object sender, MouseEventArgs args)
+        private void OnMouseLeave(object sender, MouseEventArgs args)
         {
             Mouse.OverrideCursor = null;
-        }
-
-        private void OnRectangleMouseEnterAndMove(object sender, MouseEventArgs args)
-        {
-            var x = args.GetPosition(_rectangle).X;
-            SetMouseCursor(x);
         }
     }
 }

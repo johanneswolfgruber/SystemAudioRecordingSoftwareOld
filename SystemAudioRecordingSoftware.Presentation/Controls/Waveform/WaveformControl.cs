@@ -1,25 +1,17 @@
 ﻿using SkiaSharp.Views.WPF;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using SystemAudioRecordingSoftware.Domain.Model;
-using SystemAudioRecordingSoftware.Presentation.Controls.Lines;
 
 namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 {
-    // TODO: factor out line handling
-    // TODO: rethink reset handling
-
     [TemplatePart(Name = ContentPart, Type = typeof(Grid))]
     [TemplatePart(Name = MainWaveformPart, Type = typeof(SKElement))]
-    [TemplatePart(Name = MainLineCanvasPart, Type = typeof(Canvas))]
     [TemplatePart(Name = OverviewWaveformPart, Type = typeof(SKElement))]
-    [TemplatePart(Name = OverviewLineCanvasPart, Type = typeof(Canvas))]
-    [TemplatePart(Name = WaveformSliderPart, Type = typeof(Canvas))]
     [TemplatePart(Name = ButtonsPart, Type = typeof(StackPanel))]
     [TemplatePart(Name = ZoomInPart, Type = typeof(Button))]
     [TemplatePart(Name = ZoomOutPart, Type = typeof(Button))]
@@ -31,10 +23,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
     {
         private const string ContentPart = "PART_Content";
         private const string MainWaveformPart = "PART_MainWaveform";
-        private const string MainLineCanvasPart = "PART_MainLineCanvas";
         private const string OverviewWaveformPart = "PART_OverviewWaveform";
-        private const string OverviewLineCanvasPart = "PART_OverviewLineCanvas";
-        private const string WaveformSliderPart = "PART_WaveformSlider";
         private const string ButtonsPart = "PART_Buttons";
         private const string ZoomInPart = "PART_ZoomInButton";
         private const string ZoomOutPart = "PART_ZoomOutButton";
@@ -45,24 +34,16 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private readonly IDisposable _redrawTimer;
 
-        private readonly List<LineContainer> _snipLines = new();
-        private Button? _addSnipButton;
         private AudioDataPoint[] _audioArray = Array.Empty<AudioDataPoint>();
-        private TimeSpan _currentTimestamp;
-        private ToggleButton? _followPlayHeadButton;
         private TimeSpan _length;
-        private Canvas? _mainLineCanvas;
-        private LineContainer? _markerLines;
-        private Canvas? _overviewLineCanvas;
-        private WaveformSlider? _waveformSlider;
+        private AudioWaveform? _audioWaveform;
+        private Button? _addSnipButton;
         private Button? _removeSnipButton;
         private IDisposable? _resetSubscription;
-        private LineContainer? _selectedLines;
-        private bool _shouldFollowWaveform = true;
+        private ToggleButton? _followPlayHeadButton;
         private TextBlock? _timeDisplayTextBlock;
         private Button? _zoomInButton;
         private Button? _zoomOutButton;
-        private AudioWaveform? _audioWaveform;
 
         public WaveformControl()
         {
@@ -88,9 +69,6 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
             var mainElement = GetTemplateChild(MainWaveformPart) as SKElement;
             var overviewElement = GetTemplateChild(OverviewWaveformPart) as SKElement;
-            _mainLineCanvas = GetTemplateChild(MainLineCanvasPart) as Canvas;
-            _overviewLineCanvas = GetTemplateChild(OverviewLineCanvasPart) as Canvas;
-            var waveformSliderCanvas = GetTemplateChild(WaveformSliderPart) as Canvas;
 
             _zoomInButton = GetTemplateChild(ZoomInPart) as Button;
             _zoomOutButton = GetTemplateChild(ZoomOutPart) as Button;
@@ -99,8 +77,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _followPlayHeadButton = GetTemplateChild(FollowPlayHeadPart) as ToggleButton;
             _timeDisplayTextBlock = GetTemplateChild(TimeDisplay) as TextBlock;
 
-            if (mainElement is null || overviewElement is null || _mainLineCanvas is null || 
-                _overviewLineCanvas is null || waveformSliderCanvas is null || _zoomInButton is null || 
+            if (mainElement is null || overviewElement is null || _zoomInButton is null || 
                 _zoomOutButton is null || _addSnipButton is null || _removeSnipButton is null || 
                 _followPlayHeadButton is null || _timeDisplayTextBlock is null)
             {
@@ -113,22 +90,13 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 new AudioWaveformStyle(MainWaveformColor, MainWaveformStrokeWidth),
                 new AudioWaveformStyle(OverviewWaveformColor, OverviewWaveformStrokeWidth));
 
-            mainElement.MouseDown += OnMainElementMouseDown;
-            mainElement.MouseMove += OnMainElementMouseMove;
-            overviewElement.MouseDown += OnOverviewElementMouseDown;
-            overviewElement.MouseUp += OnOverviewElementMouseUp;
-            overviewElement.MouseMove += OnOverviewElementMouseMove;
-
-            waveformSliderCanvas.Width = mainElement.Width;
-            _waveformSlider = new WaveformSlider(waveformSliderCanvas);
-
             _zoomInButton.Click += OnZoomInClicked;
             _zoomOutButton.Click += OnZoomOutClicked;
             _addSnipButton.Click += OnAddSnipClicked;
             _removeSnipButton.Click += OnRemoveSnipClicked;
             _followPlayHeadButton.Click += OnFollowPlayHeadClicked;
 
-            _followPlayHeadButton.IsChecked = _shouldFollowWaveform;
+            _followPlayHeadButton.IsChecked = true;
         }
     }
 }

@@ -18,7 +18,8 @@ namespace SystemAudioRecordingSoftware.Application.Services
 
         public Result<TimeSpan> SnipCurrentRecording()
         {
-            throw new NotImplementedException();
+            // TODO: implement
+            return Result.Success(TimeSpan.FromSeconds(1.5));
         }
 
         public Result SnipRecording(Guid recordingId, TimeSpan timeStamp)

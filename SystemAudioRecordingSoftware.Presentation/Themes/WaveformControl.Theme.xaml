@@ -35,14 +35,6 @@
                 Grid.Row="0"
                 Grid.Column="0"
                 Grid.RowSpan="2" />
-            <Canvas
-                x:Name="PART_MainLineCanvas"
-                HorizontalAlignment="Stretch"
-                Width="{TemplateBinding Width}"
-                Height="{TemplateBinding Height}"
-                Grid.Row="0"
-                Grid.Column="0"
-                Grid.RowSpan="2" />
 
             <Border
                 x:Name="OverviewBorder"
@@ -60,20 +52,6 @@
                 Width="{TemplateBinding Width}"
                 Height="{TemplateBinding OverviewHeight}"
                 HorizontalAlignment="Stretch" />
-            <Canvas
-                x:Name="PART_OverviewLineCanvas"
-                HorizontalAlignment="Stretch"
-                Width="{TemplateBinding Width}"
-                Height="{TemplateBinding OverviewHeight}"
-                Grid.Row="2"
-                Grid.Column="0" />
-            <Canvas
-                x:Name="PART_WaveformSlider"
-                HorizontalAlignment="Stretch"
-                Width="{TemplateBinding Width}"
-                Height="{TemplateBinding OverviewHeight}"
-                Grid.Row="2"
-                Grid.Column="0" />
             
             <StackPanel 
                 x:Name="PART_Buttons"
