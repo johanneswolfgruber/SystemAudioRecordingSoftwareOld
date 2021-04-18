@@ -22,39 +22,52 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _skElement.MouseLeave += OnMouseLeave;
         }
 
-        public override void AddSnipLine(TimeSpan? timeStamp = null)
+        public override TimeSpan? AddSnipLine(TimeSpan? timeStamp = null)
         {
-            _snipLines.ForEach(x => x.IsSelected = false);
+            var time = timeStamp ?? Marker.TimeStamp;
+            if (SnipLines.Any(x => 
+                time > x.TimeStamp - TimeSpan.FromSeconds(0.1) && time < x.TimeStamp + TimeSpan.FromSeconds(0.1)))
+            {
+                return null;
+            }
+            
+            SnipLines.ForEach(x => x.IsSelected = false);
             
             var line = timeStamp is null
                 ? Marker.Line
-                : new Line((float)_timeToX(timeStamp.Value), _skElement.CanvasSize.Height);
-            _snipLines.Add(new MarkerLine(line, timeStamp ?? Marker.TimeStamp));
-            _snipLines.Last().IsSelected = true;
+                : new Line((float)TimeToX(timeStamp.Value), _skElement.CanvasSize.Height);
+            SnipLines.Add(new MarkerLine(line, timeStamp ?? Marker.TimeStamp));
+            SnipLines.Last().IsSelected = true;
+
+            return SnipLines.Last().TimeStamp;
         }
 
-        public override void RemoveSnipLine(TimeSpan? timeStamp = null)
+        public override TimeSpan? RemoveSnipLine(TimeSpan? timeStamp = null)
         {
-            if (timeStamp is null)
+            var snip = timeStamp is null ? 
+                SnipLines.FirstOrDefault(x => x.IsSelected) : 
+                SnipLines.FirstOrDefault(x => x.TimeStamp == timeStamp);
+            
+            if (snip is null)
             {
-                _snipLines.RemoveAll(x => x.IsSelected);
+                return null;
             }
-            else
+                
+            SnipLines.Remove(snip);
+
+            if (SnipLines.Count > 0)
             {
-                _snipLines.RemoveAll(x => x.TimeStamp == timeStamp);
+                SnipLines.Last().IsSelected = true;
             }
 
-            if (_snipLines.Count > 0)
-            {
-                _snipLines.Last().IsSelected = true;
-            }
+            return snip.TimeStamp;
         }
 
         private void OnMouseMove(object sender, MouseEventArgs args)
         {
             var point = args.GetPosition(_skElement);
             
-            if (Marker.Line.HitTest(point.X, point.Y) || _snipLines.Any(x => x.Line.HitTest(point.X, point.Y)))
+            if (Marker.Line.HitTest(point.X, point.Y) || SnipLines.Any(x => x.Line.HitTest(point.X, point.Y)))
             {
                 Mouse.OverrideCursor = Cursors.SizeWE;
             }
@@ -73,9 +86,9 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         {
             var point = args.GetPosition(_skElement);
             
-            _snipLines.ForEach(x => x.IsSelected = x.Line.HitTest(point.X, point.Y));
+            SnipLines.ForEach(x => x.IsSelected = x.Line.HitTest(point.X, point.Y));
 
-            if (!_snipLines.Any(x => x.IsSelected))
+            if (!SnipLines.Any(x => x.IsSelected))
             {
                 SetMarker(point.X);
             }
@@ -96,7 +109,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             Marker.Line.SetX((float)newX);
             Marker.TimeStamp = _xToTime(newX);
 
-            _snipLines.ForEach(x =>
+            SnipLines.ForEach(x =>
             {
                 if (!x.IsSelected)
                 {

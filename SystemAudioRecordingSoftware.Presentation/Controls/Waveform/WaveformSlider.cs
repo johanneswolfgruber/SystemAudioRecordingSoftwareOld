@@ -16,15 +16,17 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         
         private readonly SKElement _skElement;
         private readonly Func<double, TimeSpan> _xToTime;
+        private readonly Func<TimeSpan, double> _timeToX;
         private readonly Rectangle _rectangle;
         private HitType _mouseHitType = HitType.None;
         private Point _lastPoint;
         private bool _dragInProgress;
         
-        public WaveformSlider(SKElement skElement, Func<double, TimeSpan> xToTime)
+        public WaveformSlider(SKElement skElement, Func<double, TimeSpan> xToTime, Func<TimeSpan, double> timeToX)
         {
             _skElement = skElement;
             _xToTime = xToTime;
+            _timeToX = timeToX;
 
             _rectangle = new Rectangle
             {
@@ -38,22 +40,47 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _skElement.MouseUp += OnMouseUp;
             _skElement.MouseMove += OnMouseMove;
             _skElement.MouseLeave += OnMouseLeave;
+            _skElement.MouseWheel += OnMouseScroll;
         }
 
         public double RectangleWidth => _rectangle.Width;
+        public double RectangleHeight => _rectangle.Height;
         public double RectangleLeft => _rectangle.Left;
         public double RectangleRight => RectangleLeft + RectangleWidth;
+        public double RectangleMid => RectangleLeft + (RectangleWidth / 2);
         public bool ShouldFollowWaveform { get; set; } = true;
         public TimeSpan SelectedTimeStamp { get; private set; }
 
+        public void ZoomIn(TimeSpan? zoomAround = null)
+        {
+            var oldMidTime = _xToTime(RectangleMid);
+            
+            SetRectangleWidth(RectangleWidth - 10);
+
+            CenterAround(zoomAround, oldMidTime);
+        }
+
+        public void ZoomOut(TimeSpan? zoomAround = null)
+        {
+            var oldMidTime = _xToTime(RectangleMid);
+            
+            SetRectangleWidth(RectangleWidth + 10);
+            while (RectangleRight > _skElement.ActualWidth)
+            {
+                SetRectangleLeft(RectangleLeft - 10);
+            }
+            
+            CenterAround(zoomAround, oldMidTime);
+        }
+
         public void SetRectangleLeft(double left)
         {
-            _rectangle.Left = (float)left;
+            _rectangle.Left = (float)Math.Clamp(left, 0f, _skElement.ActualWidth - RectangleWidth);
         }
 
         public void SetRectangleWidth(double width)
         {
-            _rectangle.Width = (float)width;
+            _rectangle.Width = (float)Math.Clamp(width, 20, _skElement.ActualWidth);
         }
 
         public void SetRectangleVisibility(Visibility visibility)
@@ -75,6 +102,35 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             
             _rectangle.Height = canvas.DeviceClipBounds.Height;
             _rectangle.Draw(canvas);
+            var leftLine = new Line((float)RectangleLeft, (float)RectangleHeight)
+            {
+                Color = SKColors.Black, 
+                Opacity = _rectangle.Opacity,
+                StrokeWidth = 4f
+            };
+            var rightLine = new Line((float)RectangleRight, (float)RectangleHeight)
+            {
+                Color = SKColors.Black,
+                Opacity = _rectangle.Opacity,
+                StrokeWidth = 4f
+            };
+            leftLine.Draw(canvas);
+            rightLine.Draw(canvas);
+        }
+
+        public void Reset()
+        {
+            SetRectangleVisibility(Visibility.Hidden);
+            SetRectangleWidth(300);
+            ShouldFollowWaveform = true;
+            _lastPoint = new Point(0, 0);
+        }
+
+        private void CenterAround(TimeSpan? zoomAround, TimeSpan oldMidTime)
+        {
+            var midTime = zoomAround ?? oldMidTime;
+            var mid = _timeToX(midTime);
+            SetRectangleLeft(mid - (RectangleWidth / 2));
         }
 
         private HitType SetHitType(Point point)
@@ -151,9 +207,6 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                     throw new InvalidOperationException("Unknown hit type");
             }
 
-            newX = Math.Clamp(newX, 0, _skElement.ActualWidth - RectangleWidth);
-            newWidth = Math.Clamp(newWidth, 20, _skElement.ActualWidth);
-
             SetRectangleLeft(newX);
             SetRectangleWidth(newWidth);
 
@@ -191,6 +244,20 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         private void OnMouseLeave(object sender, MouseEventArgs args)
         {
             Mouse.OverrideCursor = null;
+        }
+
+        private void OnMouseScroll(object sender, MouseWheelEventArgs args)
+        {
+            var point = Mouse.GetPosition(_skElement);
+            
+            if (!_rectangle.HitTest(point.X, point.Y))
+            {
+                return;
+            }
+
+            var t = _xToTime(point.X);
+            if (args.Delta > 0) ZoomIn(t);
+            if (args.Delta < 0) ZoomOut(t);
         }
     }
 }

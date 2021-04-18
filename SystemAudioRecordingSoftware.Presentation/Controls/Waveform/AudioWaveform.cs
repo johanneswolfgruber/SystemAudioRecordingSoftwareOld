@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 using SystemAudioRecordingSoftware.Domain.Model;
 
 namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
@@ -13,13 +14,20 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
     internal class AudioWaveform
     {
+        private readonly SKElement _mainElement;
+        private readonly SKElement _overviewElement;
+        private readonly WaveformSlider _waveformSlider;
+        private readonly ILineDisplay _mainLineDisplay;
+        private readonly ILineDisplay _overviewLineDisplay;
+        private readonly AudioWaveformStyle _mainStyle;
+        private readonly AudioWaveformStyle _overviewStyle;
         private AudioDataPoint[] _audioData = Array.Empty<AudioDataPoint>();
         private AudioDataPoint[] _mainWaveformAudioData = Array.Empty<AudioDataPoint>();
         private TimeSpan _length;
-        private TimeSpan _mainWaveformEndTime;
         private TimeSpan _mainWaveformStartTime;
-        private readonly AudioWaveformStyle _mainStyle;
-        private readonly AudioWaveformStyle _overviewStyle;
+        private TimeSpan _mainWaveformEndTime;
+        private double _lastScrollX;
+        private TimeSpan _lastScrollTime;
 
         public AudioWaveform(
             SKElement mainElement,
@@ -27,31 +35,26 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             AudioWaveformStyle mainStyle,
             AudioWaveformStyle overviewStyle)
         {
-            MainElement = mainElement;
-            OverviewElement = overviewElement;
-            WaveformSlider = new WaveformSlider(OverviewElement, XToTime);
-            MainLineDisplay = new LineDisplay(MainElement, MainWaveformXToTime, MainWaveformTimeToX);
-            OverviewLineDisplay = new ReadonlyLineDisplay(TimeToX);
+            _mainElement = mainElement;
+            _overviewElement = overviewElement;
+            _waveformSlider = new WaveformSlider(_overviewElement, XToTime, TimeToX);
+            _mainLineDisplay = new LineDisplay(_mainElement, MainWaveformXToTime, MainWaveformTimeToX);
+            _overviewLineDisplay = new ReadonlyLineDisplay(TimeToX);
             _mainStyle = mainStyle;
             _overviewStyle = overviewStyle;
 
-            MainElement.PaintSurface += OnPaintMainSurface;
-            OverviewElement.PaintSurface += OnPaintOverviewSurface;
+            _mainElement.PaintSurface += OnPaintMainSurface;
+            _overviewElement.PaintSurface += OnPaintOverviewSurface;
+            _mainElement.MouseWheel += OnMainSurfaceScroll;
         }
-
-        public SKElement MainElement { get; }
-        public SKElement OverviewElement { get; }
-        public WaveformSlider WaveformSlider { get; }
-        public ILineDisplay MainLineDisplay { get; }
-        public ILineDisplay OverviewLineDisplay { get; }
 
         public bool ShouldFollowWaveform
         {
-            get => WaveformSlider.ShouldFollowWaveform;
-            set => WaveformSlider.ShouldFollowWaveform = value;
+            get => _waveformSlider.ShouldFollowWaveform;
+            set => _waveformSlider.ShouldFollowWaveform = value;
         }
 
-        public TimeSpan SelectedTimeStamp => WaveformSlider.SelectedTimeStamp;
+        public TimeSpan SelectedTimeStamp => _waveformSlider.SelectedTimeStamp;
 
         public void RenderWaveform(AudioDataPoint[] audioData, TimeSpan length)
         {
@@ -63,37 +66,71 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 return;
             }
 
-            WaveformSlider.SetRectangleVisibility(Visibility.Visible);
-            MainElement.InvalidateVisual();
-            OverviewElement.InvalidateVisual();
+            _waveformSlider.SetRectangleVisibility(Visibility.Visible);
+            _mainElement.InvalidateVisual();
+            _overviewElement.InvalidateVisual();
+        }
+        
+        public void ZoomIn(TimeSpan? zoomAround = null)
+        {
+            _waveformSlider.ZoomIn(zoomAround);
+        }
+
+        public void ZoomOut(TimeSpan? zoomAround = null)
+        {
+            _waveformSlider.ZoomOut(zoomAround);
+        }
+        
+        public TimeSpan? AddSnipLine(TimeSpan? timeStamp = null)
+        {
+            return _mainLineDisplay.AddSnipLine(timeStamp);
+        }
+
+        public TimeSpan? RemoveSnipLine(TimeSpan? timeStamp = null)
+        {
+            return _mainLineDisplay.RemoveSnipLine(timeStamp);
+        }
+
+        public void Reset()
+        {
+            _mainLineDisplay.Reset();
+            _overviewLineDisplay.Reset();
+            _waveformSlider.Reset();
+            _audioData = Array.Empty<AudioDataPoint>();
+            _mainWaveformAudioData = Array.Empty<AudioDataPoint>();
+            _length = TimeSpan.Zero;
+            _mainWaveformStartTime = TimeSpan.Zero;
+            _mainWaveformEndTime = TimeSpan.Zero;
+            _lastScrollX = 0;
+            _lastScrollTime = TimeSpan.Zero;
         }
 
         private TimeSpan MainWaveformXToTime(double x)
         {
             var timeSpan = _mainWaveformEndTime - _mainWaveformStartTime;
             return _mainWaveformStartTime +
-                   TimeSpan.FromMilliseconds((x / MainElement.ActualWidth) * timeSpan.TotalMilliseconds);
+                   TimeSpan.FromMilliseconds((x / _mainElement.ActualWidth) * timeSpan.TotalMilliseconds);
         }
 
         private double MainWaveformTimeToX(TimeSpan timestamp)
         {
             var timeSpan = _mainWaveformEndTime - _mainWaveformStartTime;
             var t = timestamp - _mainWaveformStartTime;
-            return (t.TotalMilliseconds / timeSpan.TotalMilliseconds) * MainElement.ActualWidth;
+            return (t.TotalMilliseconds / timeSpan.TotalMilliseconds) * _mainElement.ActualWidth;
         }
 
         private TimeSpan XToTime(double x) => 
-            TimeSpan.FromMilliseconds((x / MainElement.ActualWidth) * _length.TotalMilliseconds);
+            TimeSpan.FromMilliseconds((x / _mainElement.ActualWidth) * _length.TotalMilliseconds);
 
         private double TimeToX(TimeSpan time) => 
-            (time.TotalMilliseconds / _length.TotalMilliseconds) * MainElement.ActualWidth;
+            (time.TotalMilliseconds / _length.TotalMilliseconds) * _mainElement.ActualWidth;
 
         private void OnPaintMainSurface(object? sender, SKPaintSurfaceEventArgs e)
         {
             var canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Transparent);
             RenderMainWaveform(canvas);
-            MainLineDisplay.Render(canvas);
+            _mainLineDisplay.Render(canvas);
         }
 
         private void OnPaintOverviewSurface(object? sender, SKPaintSurfaceEventArgs e)
@@ -101,9 +138,22 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             var canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Transparent);
             RenderOverview(canvas);
-            WaveformSlider.Render(canvas);
-            OverviewLineDisplay.SetLines(MainLineDisplay.Marker, MainLineDisplay.SnipLines.ToList());
-            OverviewLineDisplay.Render(canvas);
+            _waveformSlider.Render(canvas);
+            _overviewLineDisplay.SetLines(_mainLineDisplay.Marker, _mainLineDisplay.Snips.ToList());
+            _overviewLineDisplay.Render(canvas);
+        }
+
+        private void OnMainSurfaceScroll(object sender, MouseWheelEventArgs args)
+        {
+            var x = Mouse.GetPosition(_mainElement).X;
+            if (x < _lastScrollX - 10 || x > _lastScrollX + 10)
+            {
+                _lastScrollX = x;
+                _lastScrollTime = MainWaveformXToTime(_lastScrollX);
+            }
+            
+            if (args.Delta > 0) ZoomIn(_lastScrollTime);
+            if (args.Delta < 0) ZoomOut(_lastScrollTime);
         }
 
         private void RenderMainWaveform(SKCanvas canvas)
@@ -189,8 +239,8 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 return Array.Empty<AudioDataPoint>();
             }
 
-            var mainLeftTime = XToTime(WaveformSlider.RectangleLeft);
-            var mainRightTime = XToTime(WaveformSlider.RectangleRight);
+            var mainLeftTime = XToTime(_waveformSlider.RectangleLeft);
+            var mainRightTime = XToTime(_waveformSlider.RectangleRight);
             return _audioData
                 .Where(p => p.TimeStamp >= mainLeftTime &&
                                         p.TimeStamp <= mainRightTime)

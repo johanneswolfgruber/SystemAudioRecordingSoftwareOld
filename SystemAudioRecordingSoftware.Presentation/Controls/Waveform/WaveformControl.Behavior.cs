@@ -12,7 +12,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void ResetWaveform()
         {
-            // TODO: Reset AudioWaveform, WaveformSlider, LineDisplay etc.
+            _audioWaveform?.Reset();
         }
 
         private void RenderAudioWaveform()

@@ -12,7 +12,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Shapes
         
         public Line(float x, float height)
         {
-            P0 = new SKPoint(x, 0f);;
+            P0 = new SKPoint(x, 0f);
             P1 = new SKPoint(x, height);
         }
 

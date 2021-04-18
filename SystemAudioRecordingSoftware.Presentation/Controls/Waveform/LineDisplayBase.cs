@@ -7,50 +7,59 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
     internal interface ILineDisplay
     {
         MarkerLine Marker { get; }
-        IReadOnlyList<MarkerLine> SnipLines { get; }
-        void SetLines(MarkerLine marker, List<MarkerLine> snipLines);
-        void AddSnipLine(TimeSpan? timeStamp = null);
-        void RemoveSnipLine(TimeSpan? timeStamp = null);
+        IReadOnlyList<MarkerLine> Snips { get; }
+        void SetLines(MarkerLine marker, List<MarkerLine> snips);
+        TimeSpan? AddSnipLine(TimeSpan? timeStamp = null);
+        TimeSpan? RemoveSnipLine(TimeSpan? timeStamp = null);
         void Render(SKCanvas canvas);
+        void Reset();
     }
 
     internal class LineDisplayBase : ILineDisplay
     {
-        protected readonly Func<TimeSpan, double> _timeToX;
-        protected List<MarkerLine> _snipLines = new();
+        protected readonly Func<TimeSpan, double> TimeToX;
+        protected List<MarkerLine> SnipLines = new();
 
-        public LineDisplayBase(Func<TimeSpan, double> timeToX)
+        protected LineDisplayBase(Func<TimeSpan, double> timeToX)
         {
-            _timeToX = timeToX;
+            TimeToX = timeToX;
         }
 
         public MarkerLine Marker { get; protected set; } = new();
-        public IReadOnlyList<MarkerLine> SnipLines => _snipLines;
+        public IReadOnlyList<MarkerLine> Snips => SnipLines;
         
-        public void SetLines(MarkerLine marker, List<MarkerLine> snipLines)
+        public void SetLines(MarkerLine marker, List<MarkerLine> snips)
         {
             Marker = marker;
-            _snipLines = snipLines;
+            SnipLines = snips;
         }
 
-        public virtual void AddSnipLine(TimeSpan? timeStamp = null)
+        public virtual TimeSpan? AddSnipLine(TimeSpan? timeStamp = null)
         {
+            return null;
         }
 
-        public virtual void RemoveSnipLine(TimeSpan? timeStamp = null)
+        public virtual TimeSpan? RemoveSnipLine(TimeSpan? timeStamp = null)
         {
+            return null;
         }
 
         public void Render(SKCanvas canvas)
         {
-            Marker.Line.SetX((float)_timeToX(Marker.TimeStamp));
+            Marker.Line.SetX((float)TimeToX(Marker.TimeStamp));
             Marker.Line.Draw(canvas, CreatePaint(false, true));
 
-            _snipLines.ForEach(x =>
+            SnipLines.ForEach(x =>
             {
-                x.Line.SetX((float)_timeToX(x.TimeStamp));
+                x.Line.SetX((float)TimeToX(x.TimeStamp));
                 x.Line.Draw(canvas, CreatePaint(x.IsSelected));
             });
+        }
+
+        public void Reset()
+        {
+            Marker = new();
+            SnipLines = new();
         }
 
         private static SKPaint CreatePaint(bool isSelected, bool isMarker = false)

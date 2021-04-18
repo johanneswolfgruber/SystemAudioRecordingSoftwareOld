@@ -9,30 +9,35 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
     {
         private void OnFollowPlayHeadClicked(object sender, RoutedEventArgs routedEventArgs)
         {
-            _audioWaveform!.ShouldFollowWaveform = _followPlayHeadButton?.IsChecked ?? true;;
+            _audioWaveform!.ShouldFollowWaveform = _followPlayHeadButton?.IsChecked ?? true;
         }
 
         private void OnRemoveSnipClicked(object sender, RoutedEventArgs routedEventArgs)
         {
-            var lineToRemove = _audioWaveform!.MainLineDisplay.SnipLines.FirstOrDefault(x => x.IsSelected);
-            _audioWaveform.MainLineDisplay.RemoveSnipLine();
-            SnipRemoved.Execute(lineToRemove?.TimeStamp);
+            var timeStamp = _audioWaveform!.RemoveSnipLine();
+            if (timeStamp is not null)
+            {
+                SnipRemoved.Execute(timeStamp);
+            }
         }
 
         private void OnAddSnipClicked(object sender, RoutedEventArgs routedEventArgs)
         {
-            _audioWaveform!.MainLineDisplay.AddSnipLine();
-            SnipAdded.Execute(_audioWaveform.MainLineDisplay.SnipLines[^1].TimeStamp);
+            var timeStamp = _audioWaveform!.AddSnipLine();
+            if (timeStamp is not null)
+            {
+                SnipAdded.Execute(timeStamp);
+            }
         }
 
         private void OnZoomOutClicked(object sender, RoutedEventArgs routedEventArgs)
         {
-            throw new NotImplementedException();
+            _audioWaveform!.ZoomOut();
         }
 
         private void OnZoomInClicked(object sender, RoutedEventArgs routedEventArgs)
         {
-            throw new NotImplementedException();
+            _audioWaveform!.ZoomIn();
         }
 
         private void OnDisplayAudioDataChanged(object? sender, NotifyCollectionChangedEventArgs args)
@@ -42,12 +47,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 return;
             }
 
-            if (System.Windows.Application.Current is null)
-            {
-                return;
-            }
-
-            System.Windows.Application.Current.Dispatcher.Invoke(() => _audioArray = DisplayAudioData.ToArray());
+            RunOnDispatcher(() => _audioArray = DisplayAudioData.ToArray());
         }
 
         private static void OnDisplayAudioDataPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -70,12 +70,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
         private void OnSnipTimeStampsChanged(object? sender, NotifyCollectionChangedEventArgs args)
         {
-            if (System.Windows.Application.Current == null)
-            {
-                return;
-            }
-            
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            RunOnDispatcher(() =>
             {
                 var newTimeStamps = args.NewItems?.OfType<TimeSpan>().ToList();
                 var oldTimeStamps = args.OldItems?.OfType<TimeSpan>().ToList();
@@ -87,17 +82,17 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             
                 foreach (var timeStamp in newTimeStamps)
                 {
-                    _audioWaveform.MainLineDisplay.AddSnipLine(timeStamp);
+                    _audioWaveform.AddSnipLine(timeStamp);
                 }
             
-                if (oldTimeStamps is null || _audioWaveform.MainLineDisplay.SnipLines.Count == 0)
+                if (oldTimeStamps is null)
                 {
                     return;
                 }
             
                 foreach (var timeStamp in oldTimeStamps)
                 {
-                    _audioWaveform.MainLineDisplay.RemoveSnipLine(timeStamp);
+                    _audioWaveform.RemoveSnipLine(timeStamp);
                 }
             });
         }
@@ -138,6 +133,16 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             }
 
             control.ResubscribeToResetObservable();
+        }
+
+        private static void RunOnDispatcher(Action action)
+        {
+            if (System.Windows.Application.Current is null)
+            {
+                return;
+            }
+
+            System.Windows.Application.Current.Dispatcher.Invoke(action);
         }
     }
 }
