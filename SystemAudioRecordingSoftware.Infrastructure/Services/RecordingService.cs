@@ -2,11 +2,9 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using SystemAudioRecordingSoftware.Application.Interfaces;
 using SystemAudioRecordingSoftware.Domain.Events;
-using SystemAudioRecordingSoftware.Domain.Model;
+using SystemAudioRecordingSoftware.Domain.Extensions;
 using SystemAudioRecordingSoftware.Domain.Types;
 
 namespace SystemAudioRecordingSoftware.Infrastructure.Services
@@ -16,8 +14,9 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
         private readonly IMapper _mapper;
         private readonly IRecordsRepository _repository;
         private WasapiLoopbackCapture _capture;
-        private Recording? _currentRecording;
+        private Guid? _currentRecordingId;
         private WaveFileWriter? _writer;
+        private TimeSpan _currentTimeStamp;
 
         public RecordingService(IRecordsRepository repository, IDisplayDataProvider dataProvider, IMapper mapper)
         {
@@ -52,12 +51,12 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
             _capture.StartRecording();
             CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
 
-            if (_currentRecording is null)
+            if (_currentRecordingId is null)
             {
                 return Result.Error<Guid>("No recording created");
             }
 
-            return Result.Success(_currentRecording.Id);
+            return Result.Success(_currentRecordingId.Value);
         }
 
         public Result StopRecording()
@@ -67,11 +66,24 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
             return Result.Success();
         }
 
+        public Result<TimeSpan> GetCurrentTimeStamp()
+        {
+            return IsRecording ? Result.Success(_currentTimeStamp) : Result.Error<TimeSpan>("Not recording");
+        }
+
+        public Result<Guid> GetCurrentRecording()
+        {
+            return _currentRecordingId is null
+                ? Result.Error<Guid>("Not recording")
+                : Result.Success(_currentRecordingId.Value);
+        }
+
         private void InitializeRecordingEngine()
         {
             _capture = new WasapiLoopbackCapture();
-            _currentRecording = _repository.CreateRecording();
-            _writer = new WaveFileWriter(_currentRecording.FilePath, _capture.WaveFormat);
+            var recording = _repository.CreateRecording();
+            _currentRecordingId = recording.Id;
+            _writer = new WaveFileWriter(recording.FilePath, _capture.WaveFormat);
             DisplayDataProvider.WaveFormat = _capture.WaveFormat;
             DisplayDataProvider.TotalTime = TimeSpan.Zero;
 
@@ -87,6 +99,7 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
             }
 
             _writer.Write(args.Buffer, 0, args.BytesRecorded);
+            _currentTimeStamp = _writer.TotalTime;
             DisplayDataProvider.Add(args.Buffer, 0, args.BytesRecorded);
         }
 
@@ -97,12 +110,18 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
                 throw new InvalidOperationException("The WaveFileWriter is not set");
             }
 
-            if (_currentRecording is null)
+            if (_currentRecordingId is null)
             {
                 throw new InvalidOperationException("The Recording is not set");
             }
 
-            _repository.UpdateRecording(_currentRecording with {Length = _writer.TotalTime});
+            var recordingResult = _repository.GetById(_currentRecordingId.Value);
+            if (recordingResult.Failed)
+            {
+                throw new InvalidOperationException(recordingResult.ErrorText);
+            }
+
+            var recording = recordingResult.Value! with {Length = _writer.TotalTime};
 
             _writer.Dispose();
             _writer = null;
@@ -113,22 +132,8 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
 
             CaptureStateChanged?.Invoke(this, new CaptureStateChangedEventArgs(_capture.CaptureState));
 
-            var nextStartTimeStamp = _currentRecording.Tracks.Count > 1
-                ? _currentRecording.Tracks[1].Start
-                : _currentRecording.Length;
-            var tracks = _currentRecording.Tracks
-                .OrderBy(t => t.Start)
-                .ToList();
-
-            var newTracks = new List<Track>();
-            for (int i = 0; i < tracks.Count - 1; i++)
-            {
-                var length = nextStartTimeStamp - tracks[i].Start;
-                nextStartTimeStamp = tracks[i + 1].Start;
-                newTracks.Add(tracks[i] with {Name = $"Track {i + 1}", Length = length});
-            }
-
-            _repository.UpdateRecording(_currentRecording with {Tracks = newTracks});
+            _repository.UpdateRecording(recording with {Tracks = recording.UpdateTrackTimeStamps(recording.Length)});
+            _currentRecordingId = null;
         }
     }
 }

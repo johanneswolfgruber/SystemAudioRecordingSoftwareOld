@@ -23,5 +23,9 @@ namespace SystemAudioRecordingSoftware.Application.Interfaces
         Result<Guid> StartRecording();
 
         Result StopRecording();
+
+        Result<TimeSpan> GetCurrentTimeStamp();
+
+        Result<Guid> GetCurrentRecording();
     }
 }

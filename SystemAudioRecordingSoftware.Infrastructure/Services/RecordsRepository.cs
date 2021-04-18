@@ -26,7 +26,9 @@ namespace SystemAudioRecordingSoftware.Infrastructure.Services
         public Recording CreateRecording()
         {
             var id = Guid.NewGuid();
-            var path = Path.Combine(Path.GetTempPath(), id + ".wav");
+            var dirPath = Path.Combine(Path.GetTempPath(), "SystemAudioRecordingSoftware");
+            Directory.CreateDirectory(dirPath);
+            var path = Path.Combine(dirPath, id + ".wav");
             var recording = new Recording(
                 id,
                 string.Empty,
