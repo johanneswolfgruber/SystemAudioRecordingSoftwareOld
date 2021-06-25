@@ -123,6 +123,7 @@
                     Pause="{Binding RecordingsList.PauseCommand}"
                     Play="{Binding RecordingsList.PlayCommand}"
                     Reset="{Binding ResetWaveform}"
+                    SnipsChanged="{Binding SnipsChangedCommand}"
                     SnipAdded="{Binding SnipAddedCommand}"
                     SnipRemoved="{Binding SnipRemovedCommand}"
                     SnipTimeStamps="{Binding SnipTimeStamps}"

@@ -5,6 +5,7 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Splat;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -44,6 +45,7 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
             StopCommand = ReactiveCommand.Create(OnStop, canStopOrSnip);
             SnipCommand = ReactiveCommand.Create(OnSnip, canStopOrSnip);
             BurnCommand = ReactiveCommand.Create(OnBurn, canRecordOrBurn);
+            SnipsChangedCommand = ReactiveCommand.Create<IReadOnlyList<TimeSpan>, Unit>(OnSnipsChanged);
             SnipAddedCommand = ReactiveCommand.Create<TimeSpan, Unit>(OnSnipAdded);
             SnipRemovedCommand = ReactiveCommand.Create<TimeSpan, Unit>(OnSnipRemoved);
 
@@ -59,6 +61,8 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
         public ReactiveCommand<Unit, Unit> SnipCommand { get; }
 
         public ReactiveCommand<Unit, Unit> BurnCommand { get; }
+
+        public ReactiveCommand<IReadOnlyList<TimeSpan>, Unit> SnipsChangedCommand { get; }
 
         public ReactiveCommand<TimeSpan, Unit> SnipAddedCommand { get; }
 
@@ -107,6 +111,7 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
             ResetWaveformView();
         }
 
+
         // private void OnSelectedRecordingChanged(RecordingViewModel? vm)
         // {
         //     FilePath = vm?.FilePath;
@@ -132,7 +137,18 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
             }
             SnipTimeStamps.Add(snippingResult.Value);
         }
-        
+
+        private Unit OnSnipsChanged(IReadOnlyList<TimeSpan> arg)
+        {
+            if (_currentRecordingId is null)
+            {
+                return Unit.Default;
+            }
+            
+            _snippingService.UpdateSnipsForRecording(_currentRecordingId.Value, arg);
+            return Unit.Default;
+        }
+
         private Unit OnSnipAdded(TimeSpan timeStamp)
         {
             if (_currentRecordingId is null)
@@ -140,8 +156,7 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
                 return Unit.Default;
             }
 
-            _snippingService!.SnipRecording(_currentRecordingId.Value,
-                timeStamp); // TODO: _currentRecordingId needs to change with selection
+            _snippingService!.SnipRecording(_currentRecordingId.Value, timeStamp); // TODO: _currentRecordingId needs to change with selection
             SnipTimeStamps.Add(timeStamp);
 
             return Unit.Default;
@@ -178,7 +193,12 @@ namespace SystemAudioRecordingSoftware.Presentation.ViewModels
 
         private void SnipTimeStampsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            Title = e.NewItems?.OfType<TimeSpan>().FirstOrDefault().ToString() ?? string.Empty;
+            // if (_currentRecordingId is null)
+            // {
+            //     return;
+            // }
+            //
+            // _snippingService.UpdateSnipsForRecording(_currentRecordingId.Value, SnipTimeStamps.ToList());
         }
     }
 }

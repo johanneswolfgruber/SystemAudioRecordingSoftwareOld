@@ -47,12 +47,20 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _overviewElement.PaintSurface += OnPaintOverviewSurface;
             _mainElement.MouseWheel += OnMainSurfaceScroll;
         }
+        
+        public event EventHandler<EventArgs> SnipLinesChanged
+        {
+            add { _mainLineDisplay.SnipLinesChanged += value; }
+            remove { _mainLineDisplay.SnipLinesChanged -= value; }
+        }
 
         public bool ShouldFollowWaveform
         {
             get => _waveformSlider.ShouldFollowWaveform;
             set => _waveformSlider.ShouldFollowWaveform = value;
         }
+
+        public IReadOnlyList<MarkerLine> Snips => _mainLineDisplay.Snips;
 
         public TimeSpan SelectedTimeStamp => _waveformSlider.SelectedTimeStamp;
 

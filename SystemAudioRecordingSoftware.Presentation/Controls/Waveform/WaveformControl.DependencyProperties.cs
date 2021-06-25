@@ -192,6 +192,15 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             get { return (ICommand)GetValue(StopProperty); }
             set { SetValue(StopProperty, value); }
         }
+        
+        public static readonly DependencyProperty SnipsChangedProperty = DependencyProperty.Register(
+            nameof(SnipsChanged), typeof(ICommand), typeof(WaveformControl), new PropertyMetadata(default(ICommand)));
+
+        public ICommand SnipsChanged
+        {
+            get { return (ICommand)GetValue(SnipsChangedProperty); }
+            set { SetValue(SnipsChangedProperty, value); }
+        }
 
         public static readonly DependencyProperty SnipAddedProperty = DependencyProperty.Register(
             nameof(SnipAdded), typeof(ICommand), typeof(WaveformControl), new PropertyMetadata(default(ICommand)));

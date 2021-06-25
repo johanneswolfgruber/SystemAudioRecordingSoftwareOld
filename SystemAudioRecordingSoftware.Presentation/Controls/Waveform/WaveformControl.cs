@@ -90,6 +90,8 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 new AudioWaveformStyle(MainWaveformColor, MainWaveformStrokeWidth),
                 new AudioWaveformStyle(OverviewWaveformColor, OverviewWaveformStrokeWidth));
 
+            _audioWaveform.SnipLinesChanged += OnSnipLinesChanged;
+
             _zoomInButton.Click += OnZoomInClicked;
             _zoomOutButton.Click += OnZoomOutClicked;
             _addSnipButton.Click += OnAddSnipClicked;

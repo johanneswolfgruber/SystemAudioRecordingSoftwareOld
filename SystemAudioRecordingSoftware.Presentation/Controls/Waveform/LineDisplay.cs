@@ -118,6 +118,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 
                 x.Line.SetX((float)newX);
                 x.TimeStamp = _xToTime(newX);
+                OnSnipLinesChanged(EventArgs.Empty);
             });
         }
     }

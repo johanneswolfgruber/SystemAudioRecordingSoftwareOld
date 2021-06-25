@@ -6,6 +6,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
 {
     internal interface ILineDisplay
     {
+        event EventHandler<EventArgs> SnipLinesChanged;
         MarkerLine Marker { get; }
         IReadOnlyList<MarkerLine> Snips { get; }
         void SetLines(MarkerLine marker, List<MarkerLine> snips);
@@ -25,6 +26,7 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             TimeToX = timeToX;
         }
 
+        public virtual event EventHandler<EventArgs>? SnipLinesChanged;
         public MarkerLine Marker { get; protected set; } = new();
         public IReadOnlyList<MarkerLine> Snips => SnipLines;
         
@@ -60,6 +62,11 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
         {
             Marker = new();
             SnipLines = new();
+        }
+        
+        protected virtual void OnSnipLinesChanged(EventArgs e)
+        {
+            SnipLinesChanged?.Invoke(this, e);
         }
 
         private static SKPaint CreatePaint(bool isSelected, bool isMarker = false)

@@ -12,6 +12,16 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
             _audioWaveform!.ShouldFollowWaveform = _followPlayHeadButton?.IsChecked ?? true;
         }
 
+        private void OnSnipLinesChanged(object? sender, EventArgs e)
+        {
+            // SnipTimeStamps.Clear();
+            // foreach (var line in _audioWaveform!.Snips)
+            // {
+            //     SnipTimeStamps.Add(line.TimeStamp);
+            // }
+            SnipsChanged.Execute(_audioWaveform!.Snips.Select(x => x.TimeStamp).ToList());
+        }
+
         private void OnRemoveSnipClicked(object sender, RoutedEventArgs routedEventArgs)
         {
             var timeStamp = _audioWaveform!.RemoveSnipLine();
@@ -94,6 +104,12 @@ namespace SystemAudioRecordingSoftware.Presentation.Controls.Waveform
                 {
                     _audioWaveform.RemoveSnipLine(timeStamp);
                 }
+                
+                // SnipTimeStamps.Clear();
+                // foreach (var line in _audioWaveform.Snips)
+                // {
+                //     SnipTimeStamps.Add(line.TimeStamp);
+                // }
             });
         }
 
